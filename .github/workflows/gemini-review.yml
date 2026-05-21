@@ -15,12 +15,25 @@ jobs:
       - name: Check out repo
         uses: actions/checkout@v4
 
-      # 제미니를 활용한 코드 리뷰 액션 실행
-      - name: Gemini Code Reviewer
-        uses: itsmepsk/gemini-code-review-action@v1
+      # 변경된 코드(Diff)를 가져오는 단계
+      - name: Get PR Diff
+        id: get_diff
+        run: |
+          git fetch origin ${{ github.event.pull_request.base.ref }}
+          git diff origin/${{ github.event.pull_request.base.ref }} HEAD > pr_diff.txt
+          echo "has_changes=$(if [ -s pr_diff.txt ]; then echo "true"; else echo "false"; fi)" >> $GITHUB_OUTPUT
+
+      # 안정적인 구글 공식 제미니 액션 활용
+      - name: Google Gemini Code Review
+        if: steps.get_diff.outputs.has_changes == 'true'
+        uses: google-gemini/gemini-action@v1
         with:
-          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          # 필요에 따라 모델을 바꾸거나 프롬프트를 수정할 수 있습니다.
-          gemini_model: "gemini-3.5-pro" 
-          custom_prompt: "당신은 시니어 개발자입니다. 코드의 잠재적 버그, 가독성, 성능 개선점을 한국어로 친절하게 리뷰해 주세요."
+          api-key: ${{ secrets.GEMINI_API_KEY }}
+          model: "gemini-1.5-pro"
+          # 제미니에게 내릴 명확한 지시사항(프롬프트)
+          prompt: |
+            당신은 유능한 시니어 개발자입니다. 
+            아래 제공되는 Pull Request의 변경된 코드(Diff)를 분석하고, 가독성 개선점, 잠재적인 버그, 보안 취약점, 성능 최적화 방안을 찾아서 한국어로 친절하고 구체적인 리뷰 댓글을 작성해 주세요.
+            
+            [코드 변경 사항]
+            $(cat pr_diff.txt)
