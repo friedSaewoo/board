@@ -1,7 +1,6 @@
 package com.example.board_test.board.entity;
 
-import com.example.board_test.board.dto.request.BoardCreateRequest;
-import com.example.board_test.global.BaseEntity;
+import com.example.board_test.global.common.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
