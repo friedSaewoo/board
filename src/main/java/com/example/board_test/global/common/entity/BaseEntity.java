@@ -1,4 +1,4 @@
-package com.example.board_test.global;
+package com.example.board_test.global.common.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
