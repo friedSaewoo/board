@@ -1,0 +1,26 @@
+name: Gemini Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      # 제미니를 활용한 코드 리뷰 액션 실행
+      - name: Gemini Code Reviewer
+        uses: itsmepsk/gemini-code-review-action@v1
+        with:
+          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          # 필요에 따라 모델을 바꾸거나 프롬프트를 수정할 수 있습니다.
+          gemini_model: "gemini-3.5-pro" 
+          custom_prompt: "당신은 시니어 개발자입니다. 코드의 잠재적 버그, 가독성, 성능 개선점을 한국어로 친절하게 리뷰해 주세요."
