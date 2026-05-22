@@ -66,7 +66,7 @@ function App() {
   // 게시판 목록 API 호출
   const fetchBoards = async (page: number) => {
     try {
-      const response = await fetch(`/boards?pageNum=${page}&pageSize=10`);
+      const response = await fetch(`/boards?pageNum=${page}&pageSize=10&sortBy=id&direction=DESC`);
       if (!response.ok) {
         throw new Error('API 호출에 실패하였습니다.');
       }
