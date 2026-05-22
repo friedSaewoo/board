@@ -1,5 +1,6 @@
 package com.example.board_test.board.entity;
 
+import com.example.board_test.board.dto.request.BoardRequest;
 import com.example.board_test.global.common.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -29,4 +30,14 @@ public class Board extends BaseEntity {
                 .contents(contents)
                 .build();
     }
+
+    public void update(BoardRequest request) {
+        if (request.getTitle() != null) {
+            this.title = request.getTitle();
+        }
+        if (request.getContents() != null) {
+            this.contents = request.getContents();
+        }
+    }
+
 }

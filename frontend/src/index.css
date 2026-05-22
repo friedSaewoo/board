@@ -382,6 +382,16 @@ button, input, textarea, select {
   background-color: hsl(var(--background-h), var(--background-s), calc(var(--background-l) + 4%));
 }
 
+.btn-danger {
+  background-color: #ef4444;
+  color: white;
+}
+
+.btn-danger:hover {
+  background-color: #dc2626;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
 /* Modals */
 .modal-overlay {
   position: fixed;

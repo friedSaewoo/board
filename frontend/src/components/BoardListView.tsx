@@ -5,7 +5,7 @@ interface BoardListViewProps {
   boards: Board[];
   pageInfo: PageInfo | null;
   onPageChange: (page: number) => void;
-  onOpenWriteModal: () => void;
+  onNavigateToWrite: () => void;
   onViewDetail: (id: number) => void;
 }
 
@@ -13,7 +13,7 @@ export const BoardListView: React.FC<BoardListViewProps> = ({
   boards,
   pageInfo,
   onPageChange,
-  onOpenWriteModal,
+  onNavigateToWrite,
   onViewDetail,
 }) => {
   const formatDate = (dateStr: string) => {
@@ -41,7 +41,7 @@ export const BoardListView: React.FC<BoardListViewProps> = ({
             등록된 게시물을 조회하고 신규 글을 작성할 수 있습니다.
           </p>
         </div>
-        <button className="btn btn-primary" onClick={onOpenWriteModal}>
+        <button className="btn btn-primary" onClick={onNavigateToWrite}>
           <span>+</span> 새 글 작성
         </button>
       </div>
