@@ -35,3 +35,43 @@ dependencies {
 tasks.named('test') {
     useJUnitPlatform()
 }
+
+def frontendDir = "$projectDir/frontend"
+
+task installFrontend(type: Exec) {
+    workingDir frontendDir
+    inputs.dir frontendDir
+    outputs.dir "$frontendDir/node_modules"
+
+    if (System.getProperty('os.name').toLowerCase().contains('windows')) {
+        commandLine 'cmd', '/c', 'npm', 'install'
+    } else {
+        commandLine 'npm', 'install'
+    }
+}
+
+task buildFrontend(type: Exec) {
+    dependsOn installFrontend
+    workingDir frontendDir
+    inputs.dir frontendDir
+    outputs.dir "$frontendDir/dist"
+
+    if (System.getProperty('os.name').toLowerCase().contains('windows')) {
+        commandLine 'cmd', '/c', 'npm', 'run', 'build'
+    } else {
+        commandLine 'npm', 'run', 'build'
+    }
+}
+
+task copyFrontend(type: Copy) {
+    dependsOn buildFrontend
+    from "$frontendDir/dist"
+    into "$projectDir/src/main/resources/static"
+}
+
+processResources.dependsOn copyFrontend
+
+clean.doLast {
+    file("$projectDir/src/main/resources/static").deleteDir()
+}
+
