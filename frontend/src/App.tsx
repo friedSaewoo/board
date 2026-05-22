@@ -3,8 +3,9 @@ import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { DashboardView } from './components/DashboardView';
 import { BoardListView } from './components/BoardListView';
-import { BoardDetailModal } from './components/BoardDetailModal';
-import { BoardFormModal } from './components/BoardFormModal';
+import { BoardDetailView } from './components/BoardDetailView';
+import { BoardWriteView } from './components/BoardWriteView';
+import { BoardEditView } from './components/BoardEditView';
 import { ToastContainer } from './components/ToastContainer';
 import { Board, PageInfo, Toast } from './types';
 
@@ -18,12 +19,10 @@ function App() {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [totalElement, setTotalElement] = useState<number>(0);
 
-  // 모달 상태
-  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  // 가상 라우팅 상태 ('list' | 'detail' | 'write' | 'edit')
+  const [boardView, setBoardView] = useState<'list' | 'detail' | 'write' | 'edit'>('list');
   const [selectedBoard, setSelectedBoard] = useState<Board | null>(null);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
-  
-  const [isWriteOpen, setIsWriteOpen] = useState(false);
 
   // 알림 토스트 상태
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -42,6 +41,14 @@ function App() {
   useEffect(() => {
     fetchBoards(currentPage);
   }, [currentPage]);
+
+  // 사이드바 등 메뉴 변경 시 라우팅 초기화
+  const handleMenuChange = (menu: 'dashboard' | 'board' | 'settings') => {
+    setActiveMenu(menu);
+    if (menu === 'board') {
+      setBoardView('list');
+    }
+  };
 
   // 테마 전환
   const toggleTheme = () => {
@@ -81,9 +88,10 @@ function App() {
     }
   };
 
-  // 게시판 단건 조회 API 호출
+  // 게시판 단건 조회 API 호출 (상세 페이지로 이동)
   const handleViewDetail = async (id: number) => {
-    setIsDetailOpen(true);
+    setActiveMenu('board');
+    setBoardView('detail');
     setIsDetailLoading(true);
     setSelectedBoard(null);
     try {
@@ -96,7 +104,7 @@ function App() {
     } catch (err) {
       console.error(err);
       addToast('게시물 상세 정보를 가져오지 못했습니다.', 'error');
-      setIsDetailOpen(false);
+      setBoardView('list');
     } finally {
       setIsDetailLoading(false);
     }
@@ -134,10 +142,74 @@ function App() {
     }
   };
 
+  // 게시글 수정 API 호출
+  const handleUpdateBoard = async (title: string, contents: string): Promise<boolean> => {
+    if (!selectedBoard) return false;
+    try {
+      const response = await fetch(`/boards/${selectedBoard.boardId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ title, contents }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || '수정 실패');
+      }
+
+      addToast('게시글이 성공적으로 수정되었습니다.', 'success');
+      
+      // 단건 정보 업데이트
+      const updatedData = await response.json();
+      setSelectedBoard(updatedData);
+      
+      // 목록 정보 갱신
+      fetchBoards(currentPage);
+      return true;
+    } catch (err) {
+      console.error(err);
+      addToast('게시글 수정 중 에러가 발생했습니다.', 'error');
+      return false;
+    }
+  };
+
+  // 게시글 삭제 API 호출
+  const handleDeleteBoard = async (id: number) => {
+    try {
+      const response = await fetch(`/boards/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || '삭제 실패');
+      }
+
+      addToast('게시글이 성공적으로 삭제되었습니다.', 'success');
+      
+      // 목록 페이지로 이동
+      setBoardView('list');
+      // 목록 정보 갱신
+      fetchBoards(currentPage);
+    } catch (err) {
+      console.error(err);
+      addToast('게시글 삭제 중 에러가 발생했습니다.', 'error');
+    }
+  };
+
   const getPageTitle = () => {
     switch (activeMenu) {
       case 'dashboard': return '대시보드';
-      case 'board': return '게시물 목록';
+      case 'board': {
+        switch (boardView) {
+          case 'list': return '게시물 목록';
+          case 'detail': return '게시글 상세 정보';
+          case 'write': return '새 게시글 등록';
+          case 'edit': return '게시글 수정';
+        }
+      }
       case 'settings': return '시스템 설정';
       default: return '어드민 패널';
     }
@@ -146,7 +218,7 @@ function App() {
   return (
     <div className="app-container">
       {/* Sidebar Layout */}
-      <Sidebar activeMenu={activeMenu} setActiveMenu={setActiveMenu} />
+      <Sidebar activeMenu={activeMenu} setActiveMenu={handleMenuChange} />
 
       {/* Main Content Layout */}
       <div className="main-content">
@@ -162,18 +234,45 @@ function App() {
               totalElement={totalElement}
               boards={boards}
               onViewDetail={handleViewDetail}
-              onNavigateToBoard={() => setActiveMenu('board')}
+              onNavigateToBoard={() => handleMenuChange('board')}
             />
           )}
 
           {activeMenu === 'board' && (
-            <BoardListView 
-              boards={boards}
-              pageInfo={pageInfo}
-              onPageChange={setCurrentPage}
-              onOpenWriteModal={() => setIsWriteOpen(true)}
-              onViewDetail={handleViewDetail}
-            />
+            <>
+              {boardView === 'list' && (
+                <BoardListView 
+                  boards={boards}
+                  pageInfo={pageInfo}
+                  onPageChange={setCurrentPage}
+                  onNavigateToWrite={() => setBoardView('write')}
+                  onViewDetail={handleViewDetail}
+                />
+              )}
+              {boardView === 'detail' && (
+                <BoardDetailView
+                  board={selectedBoard}
+                  isLoading={isDetailLoading}
+                  onNavigateToList={() => setBoardView('list')}
+                  onNavigateToEdit={() => setBoardView('edit')}
+                  onDelete={handleDeleteBoard}
+                />
+              )}
+              {boardView === 'write' && (
+                <BoardWriteView
+                  onSubmit={handleCreateBoard}
+                  onNavigateToList={() => setBoardView('list')}
+                />
+              )}
+              {boardView === 'edit' && (
+                <BoardEditView
+                  board={selectedBoard}
+                  isLoading={isDetailLoading}
+                  onSubmit={handleUpdateBoard}
+                  onNavigateToDetail={() => setBoardView('detail')}
+                />
+              )}
+            </>
           )}
 
           {activeMenu === 'settings' && (
@@ -226,20 +325,6 @@ function App() {
         </main>
       </div>
 
-      {/* Modals & Overlay Portals */}
-      <BoardDetailModal 
-        isOpen={isDetailOpen}
-        board={selectedBoard}
-        isLoading={isDetailLoading}
-        onClose={() => setIsDetailOpen(false)}
-      />
-
-      <BoardFormModal 
-        isOpen={isWriteOpen}
-        onSubmit={handleCreateBoard}
-        onClose={() => setIsWriteOpen(false)}
-      />
-
       {/* Dynamic Toast Container */}
       <ToastContainer toasts={toasts} />
     </div>
@@ -247,3 +332,4 @@ function App() {
 }
 
 export default App;
+

@@ -1,6 +1,6 @@
 package com.example.board_test.board.controller;
 
-import com.example.board_test.board.dto.request.BoardCreateRequest;
+import com.example.board_test.board.dto.request.BoardRequest;
 import com.example.board_test.board.dto.response.BoardResponse;
 import com.example.board_test.board.service.BoardService;
 import com.example.board_test.global.common.dto.page.PageQuery;
@@ -10,8 +10,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/boards")
 @RequiredArgsConstructor
@@ -20,7 +18,7 @@ public class BoardController {
     private final BoardService boardService;
 
     @PostMapping
-    public ResponseEntity<BoardResponse> create(@Valid @RequestBody BoardCreateRequest boardCreateRequest) {
+    public ResponseEntity<BoardResponse> create(@Valid @RequestBody BoardRequest boardCreateRequest) {
         return ResponseEntity.ok(boardService.create(boardCreateRequest));
     }
 
@@ -32,5 +30,19 @@ public class BoardController {
     @GetMapping("/{id}")
     public ResponseEntity<BoardResponse> findById(@PathVariable long id) {
         return ResponseEntity.ok(boardService.findById(id));
+    }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<BoardResponse> update(
+            @PathVariable long id,
+            @Valid @RequestBody BoardRequest request) {
+        return ResponseEntity.ok(boardService.update(id,request));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable long id) {
+
+        boardService.delete(id);
+        return ResponseEntity.ok().build();
     }
 }
