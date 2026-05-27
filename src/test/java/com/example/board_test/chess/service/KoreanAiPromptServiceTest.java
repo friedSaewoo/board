@@ -43,9 +43,12 @@ class KoreanAiPromptServiceTest {
                 .contains("Nf3")
                 .contains("가장 큰 실수")
                 .contains("놓친 전술")
-                .contains("오프닝/미들게임/엔드게임")
-                .contains("훈련 추천")
+                .contains("700자 이내")
+                .contains("다음 판에서 바로 신경 쓸 체크포인트")
                 .contains("앱이 AI API를 직접 호출한 것이 아니라");
-        assertThat(prompt).doesNotContain("앱이 GPT를 호출했습니다");
+        assertThat(prompt)
+                .doesNotContain("앱이 GPT를 호출했습니다")
+                .doesNotContain("오프닝/미들게임/엔드게임")
+                .doesNotContain("다음 1주일 훈련 추천");
     }
 }
