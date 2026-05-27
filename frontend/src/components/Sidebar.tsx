@@ -1,11 +1,13 @@
 import React from 'react';
+import { ActiveMenu } from '../types';
 
 interface SidebarProps {
-  activeMenu: string;
-  setActiveMenu: (menu: 'dashboard' | 'board' | 'settings') => void;
+  activeMenu: ActiveMenu;
+  setActiveMenu: (menu: ActiveMenu) => void;
+  isAuthenticated: boolean;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ activeMenu, setActiveMenu }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ activeMenu, setActiveMenu, isAuthenticated }) => {
   return (
     <aside className="sidebar">
       <div className="logo-section">
@@ -13,6 +15,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeMenu, setActiveMenu }) =
         <span>BOARD ADMIN</span>
       </div>
       <nav className="nav-links">
+        {!isAuthenticated && (
+          <button
+            className={`nav-link ${activeMenu === 'auth' ? 'active' : ''}`}
+            onClick={() => setActiveMenu('auth')}
+            style={{ border: 'none', background: 'none', width: '100%', textAlign: 'left' }}
+          >
+            <span>🔐</span>
+            <span>로그인/회원가입</span>
+          </button>
+        )}
         <button
           className={`nav-link ${activeMenu === 'dashboard' ? 'active' : ''}`}
           onClick={() => setActiveMenu('dashboard')}
@@ -28,6 +40,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeMenu, setActiveMenu }) =
         >
           <span>📋</span>
           <span>게시물 목록</span>
+        </button>
+
+        <button
+          className={`nav-link ${activeMenu === 'chess' ? 'active' : ''}`}
+          onClick={() => setActiveMenu('chess')}
+          style={{ border: 'none', background: 'none', width: '100%', textAlign: 'left' }}
+        >
+          <span>♟️</span>
+          <span>체스 분석</span>
         </button>
         <button
           className={`nav-link ${activeMenu === 'settings' ? 'active' : ''}`}

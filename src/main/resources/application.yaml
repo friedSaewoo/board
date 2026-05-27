@@ -10,6 +10,11 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: create
 
-
+chess:
+  stockfish:
+    command: stockfish
+    per-move-timeout-millis: 1000
+    total-timeout-millis: 120000
+    max-plies: 240
