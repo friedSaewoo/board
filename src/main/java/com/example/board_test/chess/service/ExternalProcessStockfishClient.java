@@ -12,6 +12,8 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -22,6 +24,11 @@ import java.util.concurrent.TimeUnit;
 
 @Component
 public class ExternalProcessStockfishClient implements StockfishClient {
+    private static final List<Path> STOCKFISH_FALLBACK_PATHS = List.of(
+            Path.of("/usr/games/stockfish"),
+            Path.of("/usr/local/bin/stockfish"),
+            Path.of("/opt/homebrew/bin/stockfish")
+    );
 
     private final ChessAnalysisProperties properties;
 
@@ -38,6 +45,10 @@ public class ExternalProcessStockfishClient implements StockfishClient {
             throw new CustomException(ErrorCode.CHESS_STOCKFISH_UNAVAILABLE);
         }
 
+        return startSession(command, true);
+    }
+
+    private StockfishSession startSession(List<String> command, boolean allowFallback) {
         try {
             Process process = new ProcessBuilder(command)
                     .redirectErrorStream(true)
@@ -46,8 +57,29 @@ public class ExternalProcessStockfishClient implements StockfishClient {
             session.initialize();
             return session;
         } catch (IOException e) {
+            if (allowFallback) {
+                List<String> fallbackCommand = fallbackCommand(command, STOCKFISH_FALLBACK_PATHS);
+                if (!fallbackCommand.isEmpty()) {
+                    return startSession(fallbackCommand, false);
+                }
+            }
             throw new CustomException(ErrorCode.CHESS_STOCKFISH_UNAVAILABLE);
         }
+    }
+
+    static List<String> fallbackCommand(List<String> command, List<Path> candidates) {
+        if (command.isEmpty() || !"stockfish".equals(command.getFirst())) {
+            return List.of();
+        }
+        return candidates.stream()
+                .filter(Files::isExecutable)
+                .findFirst()
+                .map(path -> {
+                    List<String> fallback = new ArrayList<>(command);
+                    fallback.set(0, path.toString());
+                    return List.copyOf(fallback);
+                })
+                .orElse(List.of());
     }
 
     static final class UciStockfishSession implements StockfishSession {

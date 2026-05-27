@@ -4,6 +4,11 @@ import com.example.board_test.chess.config.ChessAnalysisProperties;
 import com.example.board_test.global.exception.CustomException;
 import com.example.board_test.global.exception.ErrorCode;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -40,5 +45,33 @@ class ExternalProcessStockfishClientTest {
                 .isInstanceOf(CustomException.class)
                 .extracting("errorCode")
                 .isEqualTo(ErrorCode.CHESS_STOCKFISH_UNAVAILABLE);
+    }
+
+    @Test
+    void bareStockfishCommandFallsBackToExecutableCandidate(@TempDir Path tempDir) throws Exception {
+        Path stockfish = tempDir.resolve("stockfish");
+        Files.writeString(stockfish, "#!/bin/sh\n");
+        assertThat(stockfish.toFile().setExecutable(true)).isTrue();
+
+        List<String> fallback = ExternalProcessStockfishClient.fallbackCommand(
+                List.of("stockfish", "--option"),
+                List.of(tempDir.resolve("missing-stockfish"), stockfish)
+        );
+
+        assertThat(fallback).containsExactly(stockfish.toString(), "--option");
+    }
+
+    @Test
+    void explicitStockfishPathDoesNotFallback(@TempDir Path tempDir) throws Exception {
+        Path stockfish = tempDir.resolve("stockfish");
+        Files.writeString(stockfish, "#!/bin/sh\n");
+        assertThat(stockfish.toFile().setExecutable(true)).isTrue();
+
+        List<String> fallback = ExternalProcessStockfishClient.fallbackCommand(
+                List.of("/custom/stockfish"),
+                List.of(stockfish)
+        );
+
+        assertThat(fallback).isEmpty();
     }
 }
