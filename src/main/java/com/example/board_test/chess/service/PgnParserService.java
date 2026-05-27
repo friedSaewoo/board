@@ -223,11 +223,13 @@ public class PgnParserService {
                 start = 1;
             }
             String disambiguation = normalized.substring(start, normalized.length() - 2);
+            char targetPiece = piece;
+            Character targetPromotion = promotion;
 
             List<Move> matches = legalMoves.stream()
-                    .filter(move -> Character.toUpperCase(pieceAt(move.fromRow, move.fromCol)) == piece)
+                    .filter(move -> Character.toUpperCase(pieceAt(move.fromRow, move.fromCol)) == targetPiece)
                     .filter(move -> move.toRow == toRow && move.toCol == toCol)
-                    .filter(move -> promotion == null ? move.promotion == 0 : move.promotion == promotion)
+                    .filter(move -> targetPromotion == null ? move.promotion == 0 : move.promotion == targetPromotion)
                     .filter(move -> matchesDisambiguation(move, disambiguation))
                     .toList();
 
