@@ -27,3 +27,12 @@ export interface Toast {
   message: string;
   type: 'success' | 'error' | 'info';
 }
+
+export interface Member {
+  id: number;
+  name: string;
+  email: string;
+  role: 'ROLE_USER' | 'ROLE_ADMIN';
+}
+
+export type ActiveMenu = 'dashboard' | 'board' | 'settings' | 'auth';

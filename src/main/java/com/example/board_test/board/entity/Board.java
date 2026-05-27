@@ -3,6 +3,7 @@ package com.example.board_test.board.entity;
 import com.example.board_test.board.dto.request.BoardRequest;
 import com.example.board_test.global.common.entity.BaseEntity;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -20,8 +21,10 @@ public class Board extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false)
     private String title;
 
+    @Column(nullable = false)
     private String contents;
 
     public static Board from(String title, String contents) {
