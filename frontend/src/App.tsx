@@ -8,6 +8,7 @@ import { BoardWriteView } from './components/BoardWriteView';
 import { BoardEditView } from './components/BoardEditView';
 import { ToastContainer } from './components/ToastContainer';
 import { AuthView } from './components/AuthView';
+import { ChessAnalysisView } from './components/ChessAnalysisView';
 import { ActiveMenu, Board, Member, PageInfo, Toast } from './types';
 
 function App() {
@@ -168,6 +169,14 @@ function App() {
       addToast(err instanceof Error ? err.message : '회원가입 요청 중 오류가 발생했습니다.', 'error');
       return false;
     }
+  };
+
+  const handleSessionExpired = () => {
+    setCurrentUser(null);
+    setSelectedBoard(null);
+    setBoardView('list');
+    setActiveMenu('auth');
+    addToast('세션이 만료되었습니다. 다시 로그인해 주세요.', 'info');
   };
 
   const handleLogout = async () => {
@@ -358,6 +367,7 @@ function App() {
           case 'edit': return '게시글 수정';
         }
       }
+      case 'chess': return '체스 분석';
       case 'settings': return '시스템 설정';
       default: return '어드민 패널';
     }
@@ -485,6 +495,18 @@ function App() {
                   </>
                 ) : (
                   renderProtectedNotice('게시글 목록을 조회하거나 새 글을 작성하려면 로그인해 주세요.')
+                )
+              )}
+
+
+              {activeMenu === 'chess' && (
+                currentUser ? (
+                  <ChessAnalysisView
+                    onToast={addToast}
+                    onSessionExpired={handleSessionExpired}
+                  />
+                ) : (
+                  renderProtectedNotice('체스 PGN 분석을 실행하려면 먼저 로그인해 주세요.')
                 )
               )}
 

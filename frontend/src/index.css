@@ -930,3 +930,140 @@ button, input, textarea, select {
     padding: 20px;
   }
 }
+
+/* Chess Analysis View */
+.chess-analysis-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 1180px;
+}
+
+.chess-input-card {
+  max-width: 920px;
+}
+
+.chess-helper-text {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  line-height: 1.55;
+  margin-top: 4px;
+}
+
+.chess-pgn-textarea {
+  min-height: 260px;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  line-height: 1.55;
+}
+
+.chess-color-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.chess-color-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: all var(--transition-fast);
+}
+
+.chess-color-option input {
+  accent-color: var(--primary);
+}
+
+.chess-color-option.active {
+  border-color: var(--primary);
+  color: var(--primary);
+  background-color: hsl(var(--primary-h), var(--primary-s), 95%);
+  font-weight: 700;
+}
+
+[data-theme="dark"] .chess-color-option.active {
+  background-color: hsl(var(--primary-h), calc(var(--primary-s) - 20%), 20%);
+  color: hsl(var(--primary-h), var(--primary-s), 85%);
+}
+
+.chess-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.chess-metric-card {
+  margin-bottom: 0;
+}
+
+.chess-headline {
+  padding: 14px 16px;
+  margin-bottom: 20px;
+  border-left: 4px solid var(--primary);
+  border-radius: 8px;
+  background-color: hsl(var(--primary-h), var(--primary-s), 96%);
+  font-weight: 700;
+}
+
+[data-theme="dark"] .chess-headline {
+  background-color: hsl(var(--primary-h), calc(var(--primary-s) - 20%), 18%);
+}
+
+.chess-metadata-grid {
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  margin-bottom: 0;
+}
+
+.chess-pill {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background-color: hsl(var(--primary-h), var(--primary-s), 95%);
+  color: var(--primary);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+[data-theme="dark"] .chess-pill {
+  background-color: hsl(var(--primary-h), calc(var(--primary-s) - 20%), 20%);
+  color: hsl(var(--primary-h), var(--primary-s), 85%);
+}
+
+.chess-move-table tbody tr {
+  cursor: default;
+}
+
+.chess-subtext {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+.chess-prompt-card {
+  max-width: 980px;
+}
+
+.chess-prompt-textarea {
+  min-height: 280px;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  line-height: 1.55;
+}
+
+@media (max-width: 768px) {
+  .chess-color-options {
+    flex-direction: column;
+  }
+
+  .chess-color-option {
+    width: 100%;
+  }
+}

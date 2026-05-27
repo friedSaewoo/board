@@ -41,6 +41,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeMenu, setActiveMenu, isA
           <span>📋</span>
           <span>게시물 목록</span>
         </button>
+
+        <button
+          className={`nav-link ${activeMenu === 'chess' ? 'active' : ''}`}
+          onClick={() => setActiveMenu('chess')}
+          style={{ border: 'none', background: 'none', width: '100%', textAlign: 'left' }}
+        >
+          <span>♟️</span>
+          <span>체스 분석</span>
+        </button>
         <button
           className={`nav-link ${activeMenu === 'settings' ? 'active' : ''}`}
           onClick={() => setActiveMenu('settings')}

@@ -35,4 +35,51 @@ export interface Member {
   role: 'ROLE_USER' | 'ROLE_ADMIN';
 }
 
-export type ActiveMenu = 'dashboard' | 'board' | 'settings' | 'auth';
+export type PlayerColor = 'WHITE' | 'BLACK';
+
+export type MoveClassification = 'GOOD' | 'INACCURACY' | 'MISTAKE' | 'BLUNDER' | string;
+
+export interface ChessAnalysisRequest {
+  pgn: string;
+  playerColor: PlayerColor;
+}
+
+export interface ChessGameMetadata {
+  [key: string]: string | number | null | undefined;
+}
+
+export interface ChessAnalysisSummary {
+  averageCentipawnLoss?: number | null;
+  inaccuracies?: number | null;
+  mistakes?: number | null;
+  blunders?: number | null;
+  biggestSwingPly?: number | null;
+  headline?: string;
+}
+
+export interface ChessMoveAnalysis {
+  ply: number;
+  moveNumber: number;
+  side: PlayerColor | string;
+  san?: string;
+  uci?: string;
+  scoreBeforeCp?: number | null;
+  scoreAfterCp?: number | null;
+  scoreBeforeMate?: number | null;
+  scoreAfterMate?: number | null;
+  centipawnLoss?: number | null;
+  classification?: MoveClassification;
+  bestMove?: string;
+  principalVariation?: string[];
+}
+
+export interface ChessAnalysisResponse {
+  metadata: ChessGameMetadata;
+  playerColor: PlayerColor;
+  moveCount: number;
+  summary: ChessAnalysisSummary;
+  moves: ChessMoveAnalysis[];
+  aiPrompt: string;
+}
+
+export type ActiveMenu = 'dashboard' | 'board' | 'chess' | 'settings' | 'auth';

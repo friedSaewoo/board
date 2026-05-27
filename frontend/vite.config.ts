@@ -22,6 +22,10 @@ export default defineConfig({
       '/logout': {
         target: 'http://localhost:8080',
         changeOrigin: true,
+      },
+      '/chess': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
       }
     }
   }
