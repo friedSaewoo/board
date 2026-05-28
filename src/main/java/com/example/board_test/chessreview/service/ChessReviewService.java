@@ -85,7 +85,7 @@ public class ChessReviewService {
     @Transactional(readOnly = true)
     public PagedResult<ChessReviewListResponse> findAll(String ownerEmail, Pageable pageable) {
         Member owner = memberService.requireMember(ownerEmail);
-        Page<ChessReview> reviews = reviewRepository.findAllByOwnerMemberId(owner.getId(), pageable)
+        Page<ChessReviewListResponse> reviews = reviewRepository.findAllByOwnerMemberId(owner.getId(), pageable)
                 .map(ChessReviewListResponse::from);
         return PagedResult.from(reviews);
     }

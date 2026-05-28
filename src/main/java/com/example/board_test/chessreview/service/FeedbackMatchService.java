@@ -78,7 +78,7 @@ public class FeedbackMatchService {
         if (aiResponse == null || aiResponse.isBlank()) {
             return List.of();
         }
-        String[] rawSegments = aiResponse.strip().split("(?:\\r?\\n){2,}|(?m)^\\s*(?=#{1,6}\\s+) ");
+        String[] rawSegments = aiResponse.strip().split("(?:\\r?\\n){2,}|(?m)^\\s*(?=#{1,6}\\s+)");
         List<String> segments = new ArrayList<>();
         for (String rawSegment : rawSegments) {
             String text = rawSegment.trim();
