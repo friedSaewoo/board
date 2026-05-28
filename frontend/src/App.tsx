@@ -476,6 +476,7 @@ function App() {
                         onNavigateToList={() => setBoardView('list')}
                         onNavigateToEdit={() => setBoardView('edit')}
                         onDelete={handleDeleteBoard}
+                        onToast={addToast}
                       />
                     )}
                     {boardView === 'write' && (

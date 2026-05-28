@@ -51,35 +51,7 @@ const buildBoardTitle = (analysis: ChessAnalysisResponse) => {
   return `[체스 분석] ${label}`.slice(0, 100);
 };
 
-const buildBoardContent = (analysis: ChessAnalysisResponse) => {
-  const event = metadataValue(analysis.metadata, ['event', 'Event']);
-  const white = metadataValue(analysis.metadata, ['white', 'White']);
-  const black = metadataValue(analysis.metadata, ['black', 'Black']);
-  const gameResult = metadataValue(analysis.metadata, ['result', 'Result']);
-
-  return [
-    '# 체스 분석 자동 저장',
-    '',
-    'Stockfish 분석 결과와 외부 AI에 그대로 붙여넣을 한국어 코칭 프롬프트입니다.',
-    '원본 PGN은 게시글에 저장하지 않고, 분석 요약과 AI 요청문만 저장했습니다.',
-    '',
-    '## 분석 요약',
-    `- 선택 색상: ${sideLabel(analysis.playerColor)}`,
-    `- Event: ${event}`,
-    `- White: ${white}`,
-    `- Black: ${black}`,
-    `- Result: ${gameResult}`,
-    `- 총 수: ${analysis.moveCount ?? analysis.moves.length}`,
-    `- 평균 센티폰 손실: ${formatNumber(analysis.summary.averageCentipawnLoss)}cp`,
-    `- 부정확/실수/블런더: ${formatNumber(analysis.summary.inaccuracies)} / ${formatNumber(analysis.summary.mistakes)} / ${formatNumber(analysis.summary.blunders)}`,
-    `- 가장 큰 변화 Ply: ${formatNumber(analysis.summary.biggestSwingPly)}`,
-    `- 한줄 요약: ${analysis.summary.headline || '-'}`,
-    '',
-    '## 외부 AI 붙여넣기용 프롬프트',
-    '',
-    analysis.aiPrompt,
-  ].join('\n');
-};
+const buildBoardContent = (analysis: ChessAnalysisResponse) => analysis.aiPrompt;
 
 export const ChessAnalysisView: React.FC<ChessAnalysisViewProps> = ({ onToast, onSessionExpired, onViewSavedBoard }) => {
   const [pgn, setPgn] = useState('');
@@ -123,7 +95,7 @@ export const ChessAnalysisView: React.FC<ChessAnalysisViewProps> = ({ onToast, o
 
       const board = await response.json() as Board;
       setSavedBoard(board);
-      onToast('분석 결과와 AI 프롬프트를 게시판에 자동 저장했습니다.', 'success');
+      onToast('AI 복사용 프롬프트를 게시판에 자동 저장했습니다.', 'success');
     } catch (err) {
       console.error(err);
       const message = err instanceof Error ? err.message : '게시판 자동 저장 중 오류가 발생했습니다.';
@@ -399,7 +371,7 @@ export const ChessAnalysisView: React.FC<ChessAnalysisViewProps> = ({ onToast, o
                   <p>
                     {savedBoard
                       ? `#${savedBoard.boardId} ${savedBoard.title}`
-                      : '분석 요약과 AI 프롬프트를 새 게시글로 등록하고 있습니다.'}
+                      : '외부 AI에 붙여넣을 프롬프트만 새 게시글로 등록하고 있습니다.'}
                   </p>
                 </div>
                 {savedBoard && (

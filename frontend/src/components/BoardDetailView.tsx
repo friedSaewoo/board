@@ -1,5 +1,5 @@
-import React from 'react';
-import { Board } from '../types';
+import React, { useState } from 'react';
+import { Board, Toast } from '../types';
 
 interface BoardDetailViewProps {
   board: Board | null;
@@ -7,6 +7,7 @@ interface BoardDetailViewProps {
   onNavigateToList: () => void;
   onNavigateToEdit: (id: number) => void;
   onDelete: (id: number) => void;
+  onToast: (message: string, type: Toast['type']) => void;
 }
 
 export const BoardDetailView: React.FC<BoardDetailViewProps> = ({
@@ -15,7 +16,10 @@ export const BoardDetailView: React.FC<BoardDetailViewProps> = ({
   onNavigateToList,
   onNavigateToEdit,
   onDelete,
+  onToast,
 }) => {
+  const [isCopied, setIsCopied] = useState(false);
+
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '-';
     const date = new Date(dateStr);
@@ -25,6 +29,35 @@ export const BoardDetailView: React.FC<BoardDetailViewProps> = ({
   const handleDeleteClick = () => {
     if (board && window.confirm('정말로 이 게시글을 삭제하시겠습니까?')) {
       onDelete(board.boardId);
+    }
+  };
+
+  const isChessPromptPost = board?.title?.startsWith('[체스 분석]');
+
+  const handleCopyContents = async () => {
+    if (!board?.contents) return;
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(board.contents);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = board.contents;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+
+      setIsCopied(true);
+      onToast(isChessPromptPost ? 'AI 프롬프트를 복사했습니다.' : '게시글 본문을 복사했습니다.', 'success');
+      window.setTimeout(() => setIsCopied(false), 1800);
+    } catch (err) {
+      console.error(err);
+      onToast('복사에 실패했습니다. 본문을 직접 선택해 복사해 주세요.', 'error');
     }
   };
 
@@ -59,6 +92,9 @@ export const BoardDetailView: React.FC<BoardDetailViewProps> = ({
             게시글 ID: <strong>#{board.boardId}</strong>
           </span>
         </div>
+        <button className="btn btn-secondary" type="button" onClick={handleCopyContents}>
+          {isCopied ? '✅ 복사 완료' : isChessPromptPost ? '📋 프롬프트 복사' : '📋 본문 복사'}
+        </button>
       </div>
 
       <div className="detail-meta" style={{ marginBottom: '24px', gridTemplateColumns: 'repeat(3, 1fr)' }}>
