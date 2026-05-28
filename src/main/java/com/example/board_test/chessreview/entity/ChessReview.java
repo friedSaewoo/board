@@ -2,18 +2,25 @@ package com.example.board_test.chessreview.entity;
 
 import com.example.board_test.chess.model.PlayerColor;
 import com.example.board_test.global.common.entity.BaseEntity;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Lob;
+import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Getter
 @Entity
-@Table(name = "chess_reviews", indexes = {
-        @Index(name = "idx_chess_review_owner", columnList = "ownerMemberId"),
-        @Index(name = "idx_chess_review_source_analysis", columnList = "sourceAnalysisId")
-})
+@Table(name = "chess_reviews")
+@Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class ChessReview extends BaseEntity {
@@ -25,23 +32,23 @@ public class ChessReview extends BaseEntity {
     @Column(nullable = false)
     private Long ownerMemberId;
 
-    @Column(length = 64)
+    @Column(length = 36)
     private String sourceAnalysisId;
 
-    @Column(nullable = false, length = 120)
+    @Column(nullable = false, length = 200)
     private String title;
 
-    @Column(length = 120)
+    @Column(length = 100)
     private String whiteName;
 
-    @Column(length = 120)
+    @Column(length = 100)
     private String blackName;
 
-    @Column(length = 24)
+    @Column(length = 20)
     private String result;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 16)
+    @Column(nullable = false, length = 10)
     private PlayerColor playerColor;
 
     @Column(nullable = false)
@@ -81,33 +88,29 @@ public class ChessReview extends BaseEntity {
 
     public static ChessReview fromDraft(
             ChessAnalysisDraft draft,
-            String title,
             String whiteName,
             String blackName,
             String result,
             String aiResponse,
-            String feedbackMatchesJson,
-            String fenSnapshotsJson
+            String feedbackMatchesJson
     ) {
-        return new ChessReview(
-                null,
-                draft.getOwnerMemberId(),
-                draft.getAnalysisId(),
-                title,
-                whiteName,
-                blackName,
-                result,
-                draft.getPlayerColor(),
-                draft.getMoveCount(),
-                draft.getOriginalPgn(),
-                draft.getMetadataJson(),
-                draft.getSummaryJson(),
-                draft.getMoveAnalysesJson(),
-                draft.getAiPrompt(),
-                aiResponse,
-                feedbackMatchesJson,
-                fenSnapshotsJson
-        );
+        return ChessReview.builder()
+                .ownerMemberId(draft.getOwnerMemberId())
+                .sourceAnalysisId(draft.getAnalysisId())
+                .title(draft.getTitle())
+                .whiteName(whiteName)
+                .blackName(blackName)
+                .result(result)
+                .playerColor(draft.getPlayerColor())
+                .moveCount(draft.getMoveCount())
+                .originalPgn(draft.getOriginalPgn())
+                .metadataJson(draft.getMetadataJson())
+                .summaryJson(draft.getSummaryJson())
+                .moveAnalysesJson(draft.getMoveAnalysesJson())
+                .aiPrompt(draft.getAiPrompt())
+                .aiResponse(aiResponse)
+                .feedbackMatchesJson(feedbackMatchesJson)
+                .build();
     }
 
     public void updateFeedbackMatches(String feedbackMatchesJson) {

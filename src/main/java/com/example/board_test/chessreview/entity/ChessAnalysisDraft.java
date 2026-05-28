@@ -3,9 +3,18 @@ package com.example.board_test.chessreview.entity;
 import com.example.board_test.chess.model.PlayerColor;
 import com.example.board_test.chessreview.model.ChessAnalysisDraftStatus;
 import com.example.board_test.global.common.entity.BaseEntity;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Lob;
+import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -13,10 +22,8 @@ import java.time.LocalDateTime;
 
 @Getter
 @Entity
-@Table(name = "chess_analysis_drafts", indexes = {
-        @Index(name = "idx_chess_analysis_draft_public_id", columnList = "analysisId", unique = true),
-        @Index(name = "idx_chess_analysis_draft_owner", columnList = "ownerMemberId")
-})
+@Table(name = "chess_analysis_drafts")
+@Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class ChessAnalysisDraft extends BaseEntity {
@@ -25,13 +32,13 @@ public class ChessAnalysisDraft extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 64)
+    @Column(nullable = false, unique = true, length = 36)
     private String analysisId;
 
     @Column(nullable = false)
     private Long ownerMemberId;
 
-    @Column(nullable = false, length = 120)
+    @Column(nullable = false, length = 200)
     private String title;
 
     @Lob
@@ -55,14 +62,14 @@ public class ChessAnalysisDraft extends BaseEntity {
     private String aiPrompt;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 16)
+    @Column(nullable = false, length = 10)
     private PlayerColor playerColor;
 
     @Column(nullable = false)
     private int moveCount;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 16)
+    @Column(nullable = false, length = 20)
     private ChessAnalysisDraftStatus status;
 
     @Column(nullable = false)
@@ -81,25 +88,24 @@ public class ChessAnalysisDraft extends BaseEntity {
             int moveCount,
             LocalDateTime expiresAt
     ) {
-        return new ChessAnalysisDraft(
-                null,
-                analysisId,
-                ownerMemberId,
-                title,
-                originalPgn,
-                metadataJson,
-                summaryJson,
-                moveAnalysesJson,
-                aiPrompt,
-                playerColor,
-                moveCount,
-                ChessAnalysisDraftStatus.ACTIVE,
-                expiresAt
-        );
+        return ChessAnalysisDraft.builder()
+                .analysisId(analysisId)
+                .ownerMemberId(ownerMemberId)
+                .title(title)
+                .originalPgn(originalPgn)
+                .metadataJson(metadataJson)
+                .summaryJson(summaryJson)
+                .moveAnalysesJson(moveAnalysesJson)
+                .aiPrompt(aiPrompt)
+                .playerColor(playerColor)
+                .moveCount(moveCount)
+                .status(ChessAnalysisDraftStatus.ACTIVE)
+                .expiresAt(expiresAt)
+                .build();
     }
 
     public boolean isExpired(LocalDateTime now) {
-        return expiresAt.isBefore(now) || expiresAt.isEqual(now);
+        return !expiresAt.isAfter(now);
     }
 
     public void markConverted() {
