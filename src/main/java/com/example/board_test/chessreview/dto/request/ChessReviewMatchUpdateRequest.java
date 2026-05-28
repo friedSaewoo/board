@@ -8,7 +8,4 @@ import java.util.List;
 public record ChessReviewMatchUpdateRequest(
         @NotNull @Valid List<FeedbackMatchRequest> matches
 ) {
-    public ChessReviewMatchUpdateRequest {
-        matches = matches == null ? List.of() : List.copyOf(matches);
-    }
 }
