@@ -54,8 +54,7 @@ class ChessReviewControllerContractTest {
     @Autowired
     private WebApplicationContext webApplicationContext;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Autowired
     private MemberRepository memberRepository;
