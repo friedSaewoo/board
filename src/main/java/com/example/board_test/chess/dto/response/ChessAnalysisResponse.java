@@ -11,8 +11,7 @@ public record ChessAnalysisResponse(
         int moveCount,
         AnalysisSummaryResponse summary,
         List<MoveAnalysisResponse> moves,
-        String aiPrompt,
-        String analysisId
+        String aiPrompt
 ) {
     public ChessAnalysisResponse {
         moves = moves == null ? List.of() : List.copyOf(moves);

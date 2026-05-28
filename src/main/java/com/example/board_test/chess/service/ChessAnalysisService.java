@@ -54,15 +54,12 @@ public class ChessAnalysisService {
         this.chessReviewMemberService = chessReviewMemberService;
     }
 
-    @Autowired
     public ChessAnalysisService(
             PgnParserService pgnParserService,
             StockfishClient stockfishClient,
             MoveClassificationService moveClassificationService,
             KoreanAiPromptService koreanAiPromptService,
-            ChessAnalysisProperties properties,
-            ChessAnalysisDraftService chessAnalysisDraftService,
-            ChessReviewMemberService chessReviewMemberService
+            ChessAnalysisProperties properties
     ) {
         this(
                 pgnParserService,
@@ -96,21 +93,6 @@ public class ChessAnalysisService {
         AnalysisSummaryResponse summary = buildSummary(moveAnalyses, request.playerColor());
         GameMetadataResponse metadata = GameMetadataResponse.from(game.headers());
         String prompt = koreanAiPromptService.buildPrompt(request.pgn(), request.playerColor(), metadata, summary, moveAnalyses);
-        String analysisId = null;
-        if (ownerEmail != null && !ownerEmail.isBlank() && chessAnalysisDraftService != null) {
-            ChessAnalysisDraft draft = chessAnalysisDraftService.create(
-                    ownerEmail,
-                    request.pgn(),
-                    metadata,
-                    summary,
-                    moveAnalyses,
-                    prompt,
-                    request.playerColor(),
-                    game.moves().size()
-            );
-            analysisId = draft.getAnalysisId();
-        }
-
         String analysisId = null;
         if (owner != null) {
             ChessAnalysisDraft draft = chessAnalysisDraftService.createDraft(

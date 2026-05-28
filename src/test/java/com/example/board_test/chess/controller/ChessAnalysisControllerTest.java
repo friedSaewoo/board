@@ -22,7 +22,6 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.context.WebApplicationContext;
 
-import java.lang.reflect.RecordComponent;
 import java.util.List;
 import java.util.Map;
 
@@ -139,27 +138,5 @@ class ChessAnalysisControllerTest {
                 ),
                 "한국어 코칭 프롬프트"
         );
-
-        try {
-            RecordComponent[] components = ChessAnalysisResponse.class.getRecordComponents();
-            Class<?>[] parameterTypes = new Class<?>[components.length];
-            Object[] arguments = new Object[components.length];
-            for (int i = 0; i < components.length; i++) {
-                parameterTypes[i] = components[i].getType();
-                arguments[i] = switch (components[i].getName()) {
-                    case "analysisId" -> "analysis-public-id";
-                    case "metadata" -> metadata;
-                    case "playerColor" -> PlayerColor.WHITE;
-                    case "moveCount" -> 2;
-                    case "summary" -> summary;
-                    case "moves" -> moves;
-                    case "aiPrompt" -> "한국어 코칭 프롬프트";
-                    default -> throw new IllegalStateException("Unexpected ChessAnalysisResponse component: " + components[i].getName());
-                };
-            }
-            return ChessAnalysisResponse.class.getDeclaredConstructor(parameterTypes).newInstance(arguments);
-        } catch (ReflectiveOperationException e) {
-            throw new IllegalStateException("Failed to build ChessAnalysisResponse test fixture", e);
-        }
     }
 }

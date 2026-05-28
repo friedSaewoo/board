@@ -6,6 +6,7 @@ import { BoardEditView } from './components/BoardEditView';
 import { BoardListView } from './components/BoardListView';
 import { BoardWriteView } from './components/BoardWriteView';
 import { ChessAnalysisView } from './components/ChessAnalysisView';
+import { ChessReviewDetailView } from './components/chess/ChessReviewDetailView';
 import { ChessReviewListView } from './components/ChessReviewListView';
 import { DashboardView } from './components/DashboardView';
 import { Header } from './components/Header';
@@ -28,15 +29,6 @@ function App() {
   const [boardView, setBoardView] = useState<'list' | 'detail' | 'write' | 'edit'>('list');
   const [selectedBoard, setSelectedBoard] = useState<Board | null>(null);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
-  const [chessReviewView, setChessReviewView] = useState<'list' | 'detail'>('list');
-  const [selectedChessReviewId, setSelectedChessReviewId] = useState<number | null>(null);
-
-  const [chessReviews, setChessReviews] = useState<ChessReviewSummary[]>([]);
-  const [chessReviewPageInfo, setChessReviewPageInfo] = useState<PageInfo | null>(null);
-  const [chessReviewCurrentPage, setChessReviewCurrentPage] = useState<number>(1);
-  const [chessReviewView, setChessReviewView] = useState<'list' | 'detail'>('list');
-  const [selectedChessReviewId, setSelectedChessReviewId] = useState<number | null>(null);
-  const [isChessReviewLoading, setIsChessReviewLoading] = useState(false);
 
   const [chessReviews, setChessReviews] = useState<ChessReviewSummary[]>([]);
   const [chessReviewPageInfo, setChessReviewPageInfo] = useState<PageInfo | null>(null);
@@ -463,32 +455,6 @@ function App() {
     </div>
   );
 
-  const renderChessReviewDetailPlaceholder = () => (
-    <div className="section-card chess-review-detail-placeholder">
-      <div className="section-header">
-        <div>
-          <h2 className="section-title">체스 리뷰 #{selectedChessReviewId}</h2>
-          <p className="chess-helper-text">
-            전용 리뷰 보드 경로입니다. 저장된 리뷰 상세/리플레이 보드는 chess.js 리뷰 보드 컴포넌트가 이 화면에 연결됩니다.
-          </p>
-        </div>
-        <div className="chess-review-actions">
-          <button className="btn btn-secondary" type="button" onClick={() => setChessReviewView('list')}>
-            목록으로
-          </button>
-          {selectedChessReviewId && (
-            <button className="btn btn-danger" type="button" onClick={() => handleDeleteChessReview(selectedChessReviewId)}>
-              삭제
-            </button>
-          )}
-        </div>
-      </div>
-      <p className="chess-helper-text">
-        일반 게시판과 분리된 라우팅 및 생성 후 이동이 완료되었습니다. 리뷰 보드 본문은 전용 보드/매칭 작업과 통합됩니다.
-      </p>
-    </div>
-  );
-
   return (
     <div className="app-container">
       <Sidebar
@@ -626,8 +592,18 @@ function App() {
                       onDelete={handleDeleteChessReview}
                       onNavigateToAnalysis={() => handleMenuChange('chess')}
                     />
+                  ) : selectedChessReviewId ? (
+                    <ChessReviewDetailView
+                      reviewId={selectedChessReviewId}
+                      onBack={() => {
+                        setChessReviewView('list');
+                        setSelectedChessReviewId(null);
+                      }}
+                      onToast={addToast}
+                      onSessionExpired={handleSessionExpired}
+                    />
                   ) : (
-                    renderChessReviewDetailPlaceholder()
+                    renderProtectedNotice('체스 리뷰를 먼저 선택해 주세요.')
                   )
                 ) : (
                   renderProtectedNotice('체스 리뷰 게시판을 보려면 먼저 로그인해 주세요.')
