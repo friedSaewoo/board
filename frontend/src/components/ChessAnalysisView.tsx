@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { createChessReview, readApiErrorMessage } from '../api/chessReviews';
+import { createChessReview } from '../api/chessReviews';
 import { ChessAnalysisResponse, ChessReviewSummary, PlayerColor, Toast } from '../types';
 
 interface ChessAnalysisViewProps {
