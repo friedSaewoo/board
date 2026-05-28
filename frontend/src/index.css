@@ -358,6 +358,11 @@ button, input, textarea, select {
   border: none;
 }
 
+.btn-compact {
+  padding: 6px 10px;
+  font-size: 0.8rem;
+}
+
 .btn-primary {
   background-color: var(--primary);
   color: white;
@@ -1106,9 +1111,11 @@ button, input, textarea, select {
 .chess-ai-response-textarea {
   min-height: 220px;
   line-height: 1.55;
-}.chess-review-grid {
+}
+
+.chess-review-grid {
   display: grid;
-  grid-template-columns: minmax(320px, 560px) 1fr;
+  grid-template-columns: minmax(360px, 560px) minmax(320px, 1fr);
   gap: 24px;
   align-items: start;
 }
@@ -1188,15 +1195,28 @@ button, input, textarea, select {
 }
 
 .chess-side-panel {
-  max-height: 760px;
-  overflow: auto;
+  display: grid;
+  gap: 18px;
+  max-height: calc(100vh - 170px);
+  overflow: hidden;
+  position: sticky;
+  top: 88px;
+}
+
+.chess-panel-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .chess-move-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(68px, 1fr));
+  gap: 6px;
+  max-height: 210px;
+  overflow: auto;
+  padding-right: 4px;
 }
 
 .chess-move-chip {
@@ -1205,8 +1225,12 @@ button, input, textarea, select {
   background: var(--bg-card);
   color: var(--text-main);
   cursor: pointer;
-  padding: 7px 10px;
-  font-size: 0.82rem;
+  min-width: 0;
+  overflow: hidden;
+  padding: 5px 7px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.74rem;
   transition: all var(--transition-fast);
 }
 
@@ -1221,10 +1245,60 @@ button, input, textarea, select {
   color: #ef4444;
 }
 
+.current-feedback-panel {
+  border-top: 1px solid var(--border-color);
+  display: grid;
+  gap: 14px;
+  min-height: 0;
+  padding-top: 18px;
+}
+
+.current-feedback-list {
+  display: grid;
+  gap: 12px;
+  max-height: clamp(180px, calc(100vh - 560px), 360px);
+  min-height: 180px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.feedback-empty-state {
+  border: 1px dashed var(--border-color);
+  border-radius: 12px;
+  color: var(--text-muted);
+  display: grid;
+  gap: 6px;
+  padding: 18px;
+}
+
+.feedback-empty-state strong {
+  color: var(--text-main);
+}
+
+.feedback-match-manager {
+  border-top: 1px solid var(--border-color);
+  padding-top: 10px;
+}
+
+.feedback-match-manager summary {
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
 .feedback-list {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 16px;
+}
+
+.feedback-list.compact-manager {
+  grid-template-columns: 1fr;
+  margin-top: 12px;
+  max-height: 280px;
+  overflow: auto;
+  padding-right: 4px;
 }
 
 .feedback-card {
@@ -1257,8 +1331,32 @@ button, input, textarea, select {
   white-space: pre-wrap;
 }
 
+.feedback-card.compact {
+  padding: 12px;
+}
+
+.feedback-card.compact p {
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.compact-manager .feedback-card p {
+  max-height: 92px;
+  overflow: auto;
+}
+
 @media (max-width: 1100px) {
   .chess-review-grid {
     grid-template-columns: 1fr;
+  }
+
+  .chess-side-panel {
+    max-height: none;
+    overflow: visible;
+    position: static;
+  }
+
+  .current-feedback-list {
+    max-height: none;
   }
 }

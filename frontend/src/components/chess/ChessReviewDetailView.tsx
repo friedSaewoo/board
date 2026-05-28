@@ -51,6 +51,28 @@ export const ChessReviewDetailView: React.FC<ChessReviewDetailViewProps> = ({ re
     void fetchReview();
   }, [reviewId]);
 
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const tagName = target?.tagName;
+      if (tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT' || target?.isContentEditable) {
+        return;
+      }
+
+      if (event.key === 'ArrowLeft' || event.key === '<') {
+        event.preventDefault();
+        setCurrentPly((prev) => Math.max(0, prev - 1));
+      }
+      if (event.key === 'ArrowRight' || event.key === '>') {
+        event.preventDefault();
+        setCurrentPly((prev) => Math.min(review?.moves.length ?? 0, prev + 1));
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [review?.moves.length]);
+
   const fetchReview = async () => {
     setIsLoading(true);
     try {
@@ -75,6 +97,7 @@ export const ChessReviewDetailView: React.FC<ChessReviewDetailViewProps> = ({ re
   const board = useMemo(() => buildPosition(review?.moves || [], currentPly), [review?.moves, currentPly]);
   const currentMove = currentPly > 0 ? review?.moves.find((move) => move.ply === currentPly) : undefined;
   const currentFeedback = editableMatches.filter((match) => match.matchedPly === currentPly);
+  const unmatchedFeedbackCount = editableMatches.filter((match) => match.matchedPly === null).length;
   const actualFrom = currentMove?.uci?.slice(0, 2);
   const actualTo = currentMove?.uci?.slice(2, 4);
   const bestFrom = currentMove?.bestMove?.slice(0, 2);
@@ -206,7 +229,13 @@ export const ChessReviewDetailView: React.FC<ChessReviewDetailViewProps> = ({ re
         </section>
 
         <section className="section-card chess-side-panel">
-          <h3 className="section-title">수 목록</h3>
+          <div className="chess-panel-heading">
+            <div>
+              <h3 className="section-title">수 목록</h3>
+              <p className="chess-helper-text">←/→ 또는 &lt;/&gt; 키로 이동</p>
+            </div>
+            <span className="chess-pill">{currentPly} / {review.moves.length}</span>
+          </div>
           <div className="chess-move-list">
             <button className={`chess-move-chip ${currentPly === 0 ? 'active' : ''}`} type="button" onClick={() => setCurrentPly(0)}>시작</button>
             {review.moves.map((move) => (
@@ -220,53 +249,93 @@ export const ChessReviewDetailView: React.FC<ChessReviewDetailViewProps> = ({ re
               </button>
             ))}
           </div>
+
+          <div className="current-feedback-panel">
+            <div className="chess-panel-heading">
+              <div>
+                <h3 className="section-title">현재 수 AI 피드백</h3>
+                <p className="chess-helper-text">
+                  {currentMove
+                    ? `${currentMove.moveNumber}${currentMove.side === 'BLACK' ? '...' : '.'} ${currentMove.san}에 연결된 피드백`
+                    : '수를 선택하면 해당 수의 피드백만 표시됩니다.'}
+                </p>
+              </div>
+              <button className="btn btn-primary btn-compact" type="button" onClick={() => void saveMatches()} disabled={isSavingMatches}>
+                {isSavingMatches ? '저장 중...' : '매칭 저장'}
+              </button>
+            </div>
+
+            {editableMatches.length === 0 ? (
+              <p className="chess-helper-text">AI 응답 세그먼트가 없습니다.</p>
+            ) : currentFeedback.length === 0 ? (
+              <div className="feedback-empty-state">
+                <strong>{currentMove ? '이 수에 연결된 피드백이 없습니다.' : '시작 포지션입니다.'}</strong>
+                <span>수 목록에서 다른 수를 선택하면 피드백이 즉시 바뀝니다.</span>
+              </div>
+            ) : (
+              <div className="current-feedback-list">
+                {currentFeedback.map((match) => (
+                  <article key={match.segmentIndex} className="feedback-card active compact">
+                    <div className="feedback-card-header">
+                      <strong>#{match.segmentIndex + 1}</strong>
+                      <span className="chess-pill">{match.confidence} · {match.source}</span>
+                    </div>
+                    <p>{match.text}</p>
+                    <label className="form-label" htmlFor={`current-match-${match.segmentIndex}`}>연결된 수</label>
+                    <select
+                      id={`current-match-${match.segmentIndex}`}
+                      className="form-input"
+                      value={match.matchedPly ?? ''}
+                      onChange={(event) => updateMatchPly(match.segmentIndex, event.target.value ? Number(event.target.value) : null)}
+                    >
+                      <option value="">미매칭</option>
+                      {review.moves.map((move) => (
+                        <option value={move.ply} key={move.ply}>
+                          {move.ply}. {move.moveNumber}{move.side === 'BLACK' ? '...' : '.'} {move.san} ({sideLabel(move.side)})
+                        </option>
+                      ))}
+                    </select>
+                  </article>
+                ))}
+              </div>
+            )}
+
+            <details className="feedback-match-manager">
+              <summary>전체 피드백 매칭 관리{unmatchedFeedbackCount > 0 ? ` · 미매칭 ${unmatchedFeedbackCount}개` : ''}</summary>
+              <div className="feedback-list compact-manager">
+                {editableMatches.map((match) => (
+                  <article
+                    key={match.segmentIndex}
+                    className={`feedback-card compact ${match.matchedPly === currentPly ? 'active' : ''}`}
+                    onClick={() => match.matchedPly && setCurrentPly(match.matchedPly)}
+                  >
+                    <div className="feedback-card-header">
+                      <strong>#{match.segmentIndex + 1}</strong>
+                      <span className="chess-pill">{match.confidence} · {match.source}</span>
+                    </div>
+                    <p>{match.text}</p>
+                    <label className="form-label" htmlFor={`match-${match.segmentIndex}`}>연결된 수</label>
+                    <select
+                      id={`match-${match.segmentIndex}`}
+                      className="form-input"
+                      value={match.matchedPly ?? ''}
+                      onClick={(event) => event.stopPropagation()}
+                      onChange={(event) => updateMatchPly(match.segmentIndex, event.target.value ? Number(event.target.value) : null)}
+                    >
+                      <option value="">미매칭</option>
+                      {review.moves.map((move) => (
+                        <option value={move.ply} key={move.ply}>
+                          {move.ply}. {move.moveNumber}{move.side === 'BLACK' ? '...' : '.'} {move.san} ({sideLabel(move.side)})
+                        </option>
+                      ))}
+                    </select>
+                  </article>
+                ))}
+              </div>
+            </details>
+          </div>
         </section>
       </div>
-
-      <section className="section-card">
-        <div className="section-header">
-          <div>
-            <h2 className="section-title">AI 피드백 매칭</h2>
-            <p className="chess-helper-text">세그먼트를 클릭하면 매칭된 수로 이동합니다. 잘못된 매칭은 드롭다운으로 수정 후 저장하세요.</p>
-          </div>
-          <button className="btn btn-primary" type="button" onClick={() => void saveMatches()} disabled={isSavingMatches}>{isSavingMatches ? '저장 중...' : '매칭 저장'}</button>
-        </div>
-        <div className="feedback-list">
-          {editableMatches.length === 0 ? (
-            <p className="chess-helper-text">AI 응답 세그먼트가 없습니다.</p>
-          ) : editableMatches.map((match) => (
-            <article
-              key={match.segmentIndex}
-              className={`feedback-card ${match.matchedPly === currentPly ? 'active' : ''}`}
-              onClick={() => match.matchedPly && setCurrentPly(match.matchedPly)}
-            >
-              <div className="feedback-card-header">
-                <strong>#{match.segmentIndex + 1}</strong>
-                <span className="chess-pill">{match.confidence} · {match.source}</span>
-              </div>
-              <p>{match.text}</p>
-              <label className="form-label" htmlFor={`match-${match.segmentIndex}`}>연결된 수</label>
-              <select
-                id={`match-${match.segmentIndex}`}
-                className="form-input"
-                value={match.matchedPly ?? ''}
-                onClick={(event) => event.stopPropagation()}
-                onChange={(event) => updateMatchPly(match.segmentIndex, event.target.value ? Number(event.target.value) : null)}
-              >
-                <option value="">미매칭</option>
-                {review.moves.map((move) => (
-                  <option value={move.ply} key={move.ply}>
-                    {move.ply}. {move.moveNumber}{move.side === 'BLACK' ? '...' : '.'} {move.san} ({sideLabel(move.side)})
-                  </option>
-                ))}
-              </select>
-            </article>
-          ))}
-        </div>
-        {currentFeedback.length > 0 && (
-          <div className="chess-headline">현재 ply에 연결된 AI 피드백 {currentFeedback.length}개가 있습니다.</div>
-        )}
-      </section>
     </div>
   );
 };
