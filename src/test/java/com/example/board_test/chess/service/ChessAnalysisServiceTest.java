@@ -47,7 +47,12 @@ class ChessAnalysisServiceTest {
         assertThat(response.playerColor()).isEqualTo(PlayerColor.BLACK);
         assertThat(response.metadata().event()).isEqualTo("Mini");
         assertThat(response.summary().averageCentipawnLoss()).isGreaterThanOrEqualTo(0);
-        assertThat(response.aiPrompt()).contains("BLACK").contains("1. e4 e5 2. Nf3 Nc6");
+        assertThat(response.aiPrompt())
+                .contains("BLACK")
+                .contains("초반 수순")
+                .contains("1. e4(e2e4)")
+                .contains("2... Nc6(b8c6)")
+                .doesNotContain("[원본 PGN]");
     }
 
     @Test

@@ -8,6 +8,7 @@ import com.example.board_test.chess.model.PlayerColor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 @Service
@@ -20,41 +21,44 @@ public class KoreanAiPromptService {
             AnalysisSummaryResponse summary,
             List<MoveAnalysisResponse> moves
     ) {
-        String moveFindings = moves.stream()
-                .map(move -> String.format(
-                        "%d. ply %d %s %s(%s): best=%s, score %d→%d, loss=%dcp, class=%s, pv=%s",
+        String bestMoves = candidateLines(
+                moves,
+                playerColor,
+                move -> move.classification() == MoveClassification.BEST || move.classification() == MoveClassification.GOOD,
+                "- 베스트/좋은 수로 분류된 수는 제한적입니다."
+        );
+        String blunders = candidateLines(
+                moves,
+                playerColor,
+                move -> move.classification() == MoveClassification.BLUNDER || move.classification() == MoveClassification.MISTAKE,
+                "- 블런더나 큰 실수로 분류된 수는 제한적입니다."
+        );
+        String missedBetterMoves = candidateLines(
+                moves,
+                playerColor,
+                move -> move.centipawnLoss() > 35 && hasDifferentBestMove(move),
+                "- 엔진 추천수와 크게 갈린 장면은 제한적입니다."
+        );
+        String openingMoves = moves.stream()
+                .limit(16)
+                .map(move -> String.format("%d%s %s(%s)",
                         move.moveNumber(),
-                        move.ply(),
-                        move.side().koreanName(),
+                        move.side() == PlayerColor.BLACK ? "..." : ".",
                         move.san(),
-                        move.uci(),
-                        emptyToDash(move.bestMove()),
-                        move.scoreBeforeCp(),
-                        move.scoreAfterCp(),
-                        move.centipawnLoss(),
-                        move.classification(),
-                        move.principalVariation().isEmpty() ? "-" : String.join(" ", move.principalVariation())
+                        move.uci()
                 ))
-                .collect(Collectors.joining("\n"));
-
-        String biggestMistakes = moves.stream()
-                .filter(move -> move.side() == playerColor)
-                .filter(move -> move.classification() == MoveClassification.MISTAKE || move.classification() == MoveClassification.BLUNDER)
-                .map(move -> String.format("- %d수 %s: %s, 손실 %dcp", move.moveNumber(), move.side().koreanName(), move.san(), move.centipawnLoss()))
-                .collect(Collectors.joining("\n"));
-        if (biggestMistakes.isBlank()) {
-            biggestMistakes = "- 큰 실수는 제한적이었습니다. 대신 작은 부정확성을 개선 포인트로 봐 주세요.";
-        }
+                .collect(Collectors.joining(" "));
 
         return """
-                당신은 실전 체스 코치입니다. 아래 PGN과 Stockfish 분석 결과를 바탕으로 한국어로만 피드백해 주세요.
+                당신은 실전 체스 코치입니다. 아래 Stockfish 분석 결과를 바탕으로 한국어로만 피드백해 주세요.
                 앱이 AI API를 직접 호출한 것이 아니라, 사용자가 외부 AI에 붙여넣기 위한 코칭 요청입니다.
 
                 [코칭 관점]
                 - 사용자가 둔 색: %s(%s)
-                - 목표: 가장 큰 실수와 바로 개선할 후보수만 간결하게 설명
-                - 길이 제한: 핵심만 700자 이내로 답변
-                - 제외: 긴 수순 나열, 일반론, 연습계획, 1주일 훈련표
+                - 목표: 베스트 수, 블런더/큰 실수, 더 좋은 수가 있었지만 두지 않은 장면을 구분해서 설명
+                - 설명 방식: 핵심 수는 왜 좋거나 나빴는지, 추천수가 어떤 의도인지 구체적으로 설명
+                - 오프닝: chess.com처럼 어디까지가 일반적인/정석적인 오프닝 수였는지, 정석에서 벗어난 첫 수가 보이면 짚어 주세요
+                - 제외: 원본 PGN 재해석, 전체 수순 나열, 일반론, 연습계획, 1주일 훈련표
 
                 [게임 메타데이터]
                 - Event: %s
@@ -68,20 +72,22 @@ public class KoreanAiPromptService {
                 - 가장 큰 흔들림 ply: %s
                 - 한줄 요약: %s
 
-                [주요 실수/놓친 전술 후보]
+                [초반 수순: 오프닝 정석 구간 판단용]
                 %s
 
-                [전체 수순별 분석]
+                [베스트/좋은 수 후보]
                 %s
 
-                [원본 PGN]
+                [블런더/큰 실수 후보]
+                %s
+
+                [더 좋은 수가 있었던 장면]
                 %s
 
                 [요청 출력 형식]
                 1. 한줄 총평
-                2. 가장 중요한 실수 최대 3개: 왜 나빴는지 + 더 나은 후보수
-                3. 이번 판에서 반복된 패턴 1~2개
-                4. 다음 판에서 바로 신경 쓸 체크포인트 2개
+                2. 오프닝 정석 구간: 몇 수까지 일반적인 수였는지, 벗어난 첫 수가 있다면 짧게 설명
+                3. 핵심 수 해설: 베스트 수 / 블런더 / 놓친 더 좋은 수를 구분해서 설명
                 """.formatted(
                 playerColor,
                 playerColor.koreanName(),
@@ -95,10 +101,45 @@ public class KoreanAiPromptService {
                 summary.blunders(),
                 summary.biggestSwingPly() == null ? "-" : summary.biggestSwingPly(),
                 summary.headline(),
-                biggestMistakes,
-                moveFindings,
-                originalPgn
+                openingMoves,
+                bestMoves,
+                blunders,
+                missedBetterMoves
         );
+    }
+
+    private String candidateLines(
+            List<MoveAnalysisResponse> moves,
+            PlayerColor playerColor,
+            Predicate<MoveAnalysisResponse> filter,
+            String fallback
+    ) {
+        String lines = moves.stream()
+                .filter(move -> move.side() == playerColor)
+                .filter(filter)
+                .limit(6)
+                .map(move -> String.format(
+                        "- %d수 %s %s(%s): class=%s, loss=%dcp, best=%s, score %d→%d, pv=%s",
+                        move.moveNumber(),
+                        move.side().koreanName(),
+                        move.san(),
+                        move.uci(),
+                        move.classification(),
+                        move.centipawnLoss(),
+                        emptyToDash(move.bestMove()),
+                        move.scoreBeforeCp(),
+                        move.scoreAfterCp(),
+                        move.principalVariation().isEmpty() ? "-" : String.join(" ", move.principalVariation())
+                ))
+                .collect(Collectors.joining("\n"));
+        return lines.isBlank() ? fallback : lines;
+    }
+
+    private boolean hasDifferentBestMove(MoveAnalysisResponse move) {
+        return move.bestMove() != null
+                && !move.bestMove().isBlank()
+                && move.uci() != null
+                && !move.bestMove().equals(move.uci());
     }
 
     private String emptyToDash(String value) {
