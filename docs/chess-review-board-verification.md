@@ -1,6 +1,6 @@
 # Chess Review Board Verification & Integration Notes
 
-Date: 2026-05-28  
+Date: 2026-05-28
 Scope: verification/integration review for `.omx/plans/prd-chess-review-board.md` and `.omx/plans/test-spec-chess-review-board.md`.
 
 ## Current Review Baseline
