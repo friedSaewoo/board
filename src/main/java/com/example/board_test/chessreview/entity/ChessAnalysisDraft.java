@@ -6,7 +6,6 @@ import com.example.board_test.global.common.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -14,14 +13,10 @@ import java.time.LocalDateTime;
 
 @Getter
 @Entity
-@Builder
-@Table(
-        name = "chess_analysis_drafts",
-        indexes = {
-                @Index(name = "idx_chess_analysis_drafts_analysis_id", columnList = "analysisId", unique = true),
-                @Index(name = "idx_chess_analysis_drafts_owner_status", columnList = "ownerMemberId,status")
-        }
-)
+@Table(name = "chess_analysis_drafts", indexes = {
+        @Index(name = "idx_chess_analysis_draft_public_id", columnList = "analysisId", unique = true),
+        @Index(name = "idx_chess_analysis_draft_owner", columnList = "ownerMemberId")
+})
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class ChessAnalysisDraft extends BaseEntity {
@@ -73,8 +68,38 @@ public class ChessAnalysisDraft extends BaseEntity {
     @Column(nullable = false)
     private LocalDateTime expiresAt;
 
+    public static ChessAnalysisDraft create(
+            String analysisId,
+            Long ownerMemberId,
+            String title,
+            String originalPgn,
+            String metadataJson,
+            String summaryJson,
+            String moveAnalysesJson,
+            String aiPrompt,
+            PlayerColor playerColor,
+            int moveCount,
+            LocalDateTime expiresAt
+    ) {
+        return new ChessAnalysisDraft(
+                null,
+                analysisId,
+                ownerMemberId,
+                title,
+                originalPgn,
+                metadataJson,
+                summaryJson,
+                moveAnalysesJson,
+                aiPrompt,
+                playerColor,
+                moveCount,
+                ChessAnalysisDraftStatus.ACTIVE,
+                expiresAt
+        );
+    }
+
     public boolean isExpired(LocalDateTime now) {
-        return !expiresAt.isAfter(now);
+        return expiresAt.isBefore(now) || expiresAt.isEqual(now);
     }
 
     public void markConverted() {

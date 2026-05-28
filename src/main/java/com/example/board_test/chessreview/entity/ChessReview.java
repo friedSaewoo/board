@@ -5,17 +5,15 @@ import com.example.board_test.global.common.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Getter
 @Entity
-@Builder
-@Table(
-        name = "chess_reviews",
-        indexes = @Index(name = "idx_chess_reviews_owner", columnList = "ownerMemberId")
-)
+@Table(name = "chess_reviews", indexes = {
+        @Index(name = "idx_chess_review_owner", columnList = "ownerMemberId"),
+        @Index(name = "idx_chess_review_source_analysis", columnList = "sourceAnalysisId")
+})
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class ChessReview extends BaseEntity {
@@ -39,7 +37,7 @@ public class ChessReview extends BaseEntity {
     @Column(length = 120)
     private String blackName;
 
-    @Column(length = 32)
+    @Column(length = 24)
     private String result;
 
     @Enumerated(EnumType.STRING)
@@ -81,7 +79,38 @@ public class ChessReview extends BaseEntity {
     @Column(columnDefinition = "LONGTEXT")
     private String fenSnapshotsJson;
 
-    public void replaceFeedbackMatchesJson(String feedbackMatchesJson) {
+    public static ChessReview fromDraft(
+            ChessAnalysisDraft draft,
+            String title,
+            String whiteName,
+            String blackName,
+            String result,
+            String aiResponse,
+            String feedbackMatchesJson,
+            String fenSnapshotsJson
+    ) {
+        return new ChessReview(
+                null,
+                draft.getOwnerMemberId(),
+                draft.getAnalysisId(),
+                title,
+                whiteName,
+                blackName,
+                result,
+                draft.getPlayerColor(),
+                draft.getMoveCount(),
+                draft.getOriginalPgn(),
+                draft.getMetadataJson(),
+                draft.getSummaryJson(),
+                draft.getMoveAnalysesJson(),
+                draft.getAiPrompt(),
+                aiResponse,
+                feedbackMatchesJson,
+                fenSnapshotsJson
+        );
+    }
+
+    public void updateFeedbackMatches(String feedbackMatchesJson) {
         this.feedbackMatchesJson = feedbackMatchesJson;
     }
 }

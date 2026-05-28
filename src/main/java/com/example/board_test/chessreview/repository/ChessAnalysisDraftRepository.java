@@ -9,8 +9,6 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ChessAnalysisDraftRepository extends JpaRepository<ChessAnalysisDraft, Long> {
-
     Optional<ChessAnalysisDraft> findByAnalysisIdAndOwnerMemberId(String analysisId, Long ownerMemberId);
-
-    List<ChessAnalysisDraft> findByStatusAndExpiresAtBefore(ChessAnalysisDraftStatus status, LocalDateTime expiresAt);
+    List<ChessAnalysisDraft> findAllByStatusAndExpiresAtBefore(ChessAnalysisDraftStatus status, LocalDateTime expiresAt);
 }
