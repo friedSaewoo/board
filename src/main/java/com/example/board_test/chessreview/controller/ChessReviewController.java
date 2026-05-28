@@ -11,7 +11,14 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/chess/reviews")
@@ -26,18 +33,21 @@ public class ChessReviewController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ChessReviewResponse> findById(@PathVariable Long id, Authentication authentication) {
+    public ResponseEntity<ChessReviewResponse> findById(@PathVariable long id, Authentication authentication) {
         return ResponseEntity.ok(chessReviewService.findById(authentication.getName(), id));
     }
 
     @PostMapping
-    public ResponseEntity<ChessReviewResponse> create(@Valid @RequestBody ChessReviewCreateRequest request, Authentication authentication) {
+    public ResponseEntity<ChessReviewResponse> create(
+            @Valid @RequestBody ChessReviewCreateRequest request,
+            Authentication authentication
+    ) {
         return ResponseEntity.ok(chessReviewService.create(authentication.getName(), request));
     }
 
     @PatchMapping("/{id}/matches")
     public ResponseEntity<ChessReviewResponse> updateMatches(
-            @PathVariable Long id,
+            @PathVariable long id,
             @Valid @RequestBody ChessReviewMatchUpdateRequest request,
             Authentication authentication
     ) {
@@ -45,7 +55,7 @@ public class ChessReviewController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id, Authentication authentication) {
+    public ResponseEntity<Void> delete(@PathVariable long id, Authentication authentication) {
         chessReviewService.delete(authentication.getName(), id);
         return ResponseEntity.ok().build();
     }
