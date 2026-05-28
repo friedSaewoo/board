@@ -9,89 +9,128 @@ import com.example.board_test.global.exception.CustomException;
 import com.example.board_test.global.exception.ErrorCode;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Service
 public class FeedbackMatchService {
 
-    private static final Pattern MOVE_REFERENCE = Pattern.compile("(?<!\\d)(\\d{1,3})(\\.\\.\\.|\\.)([A-Za-z0-9O=+#x!?-]+)");
-    private static final Pattern UCI_REFERENCE = Pattern.compile("\\b([a-h][1-8][a-h][1-8][qrbn]?)\\b", Pattern.CASE_INSENSITIVE);
+    private static final Pattern LEADING_MOVE_REFERENCE = Pattern.compile(
+            "(?iu)(?:^|[^\\p{Alnum}])([1-9]\\d*)\\.(\\.\\.)?\\s*([O0]-[O0](?:-[O0])?|[KQRBN]?[a-h]?[1-8]?x?[a-h][1-8](?:=[QRBN])?|[a-h][1-8](?:=[QRBN])?)[+#?!]*"
+    );
+    private static final Pattern UCI_REFERENCE = Pattern.compile("(?i)\\b([a-h][1-8][a-h][1-8][qrbn]?)\\b");
 
     public List<FeedbackMatchResponse> autoMatch(String aiResponse, List<MoveAnalysisResponse> moves) {
         List<String> segments = segment(aiResponse);
-        List<FeedbackMatchResponse> matches = new ArrayList<>(segments.size());
+        List<FeedbackMatchResponse> responses = new ArrayList<>(segments.size());
         for (int index = 0; index < segments.size(); index++) {
-            matches.add(matchSegment(index, segments.get(index), moves, FeedbackMatchSource.AUTO));
+            String text = segments.get(index);
+            MoveAnalysisResponse move = findReferencedMove(text, moves);
+            responses.add(toResponse(index, text, move, confidenceFor(move), FeedbackMatchSource.AUTO));
         }
-        return matches;
+        return responses;
     }
 
-    public List<FeedbackMatchResponse> validateManualMatches(List<FeedbackMatchRequest> requests, List<MoveAnalysisResponse> moves) {
+    public List<FeedbackMatchResponse> normalizeManualMatches(List<FeedbackMatchRequest> requests, List<MoveAnalysisResponse> moves) {
+        if (requests == null) {
+            return List.of();
+        }
         Set<Integer> segmentIndexes = new HashSet<>();
         List<FeedbackMatchResponse> responses = new ArrayList<>(requests.size());
         for (FeedbackMatchRequest request : requests) {
-            if (request == null || request.segmentIndex() < 0 || !segmentIndexes.add(request.segmentIndex())) {
-                throw new CustomException(ErrorCode.CHESS_REVIEW_INVALID_MATCH);
+            if (request.segmentIndex() == null || request.segmentIndex() < 0 || !segmentIndexes.add(request.segmentIndex())) {
+                throw invalidMatch();
             }
-            FeedbackMatchConfidence confidence = request.confidence() == null ? FeedbackMatchConfidence.NONE : request.confidence();
+
+            MoveAnalysisResponse move = null;
+            if (request.matchedPly() != null) {
+                move = moveByPly(request.matchedPly(), moves);
+                if (move == null) {
+                    throw invalidMatch();
+                }
+            }
+
             FeedbackMatchSource source = request.source() == null ? FeedbackMatchSource.MANUAL : request.source();
-            if (request.matchedPly() == null) {
-                responses.add(new FeedbackMatchResponse(
-                        request.segmentIndex(),
-                        request.text() == null ? "" : request.text(),
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        FeedbackMatchConfidence.NONE,
-                        source
-                ));
-                continue;
+            FeedbackMatchConfidence confidence = request.confidence() == null
+                    ? (move == null ? FeedbackMatchConfidence.NONE : FeedbackMatchConfidence.HIGH)
+                    : request.confidence();
+
+            if (move == null && confidence != FeedbackMatchConfidence.NONE) {
+                confidence = FeedbackMatchConfidence.NONE;
             }
-            MoveAnalysisResponse move = findByPly(moves, request.matchedPly())
-                    .orElseThrow(() -> new CustomException(ErrorCode.CHESS_REVIEW_INVALID_MATCH));
-            responses.add(fromMove(request.segmentIndex(), request.text() == null ? "" : request.text(), move, confidence, source));
+
+            responses.add(toResponse(
+                    request.segmentIndex(),
+                    request.text() == null ? "" : request.text(),
+                    move,
+                    confidence,
+                    source
+            ));
         }
-        return responses.stream()
-                .sorted(Comparator.comparingInt(FeedbackMatchResponse::segmentIndex))
-                .toList();
+        return responses;
     }
 
-    private FeedbackMatchResponse matchSegment(int segmentIndex, String text, List<MoveAnalysisResponse> moves, FeedbackMatchSource source) {
-        Matcher moveMatcher = MOVE_REFERENCE.matcher(text);
-        while (moveMatcher.find()) {
-            int moveNumber = Integer.parseInt(moveMatcher.group(1));
-            String dots = moveMatcher.group(2);
-            String san = normalizeSan(moveMatcher.group(3));
-            boolean black = "...".equals(dots);
-            Optional<MoveAnalysisResponse> match = moves.stream()
+    private List<String> segment(String aiResponse) {
+        if (aiResponse == null || aiResponse.isBlank()) {
+            return List.of();
+        }
+        String[] rawSegments = aiResponse.strip().split("(?:\\r?\\n){2,}|(?m)^\\s*(?=#{1,6}\\s+) ");
+        List<String> segments = new ArrayList<>();
+        for (String rawSegment : rawSegments) {
+            String text = rawSegment.trim();
+            if (!text.isBlank()) {
+                segments.add(text);
+            }
+        }
+        if (segments.isEmpty()) {
+            segments.add(aiResponse.strip());
+        }
+        return segments;
+    }
+
+    private MoveAnalysisResponse findReferencedMove(String text, List<MoveAnalysisResponse> moves) {
+        Matcher sanMatcher = LEADING_MOVE_REFERENCE.matcher(text);
+        while (sanMatcher.find()) {
+            int moveNumber = Integer.parseInt(sanMatcher.group(1));
+            boolean black = sanMatcher.group(2) != null;
+            String san = normalizeSan(sanMatcher.group(3));
+            MoveAnalysisResponse matched = moves.stream()
                     .filter(move -> move.moveNumber() == moveNumber)
-                    .filter(move -> black ? "BLACK".equals(move.side().name()) : "WHITE".equals(move.side().name()))
-                    .filter(move -> normalizeSan(move.san()).equalsIgnoreCase(san))
-                    .findFirst();
-            if (match.isPresent()) {
-                return fromMove(segmentIndex, text, match.get(), FeedbackMatchConfidence.HIGH, source);
+                    .filter(move -> black ? move.side().name().equals("BLACK") : move.side().name().equals("WHITE"))
+                    .filter(move -> normalizeSan(move.san()).equals(san))
+                    .findFirst()
+                    .orElse(null);
+            if (matched != null) {
+                return matched;
             }
         }
 
         Matcher uciMatcher = UCI_REFERENCE.matcher(text);
         while (uciMatcher.find()) {
-            String uci = uciMatcher.group(1).toLowerCase(Locale.ROOT);
-            Optional<MoveAnalysisResponse> match = moves.stream()
+            String uci = uciMatcher.group(1).toLowerCase();
+            MoveAnalysisResponse matched = moves.stream()
                     .filter(move -> move.uci() != null && move.uci().equalsIgnoreCase(uci))
-                    .findFirst();
-            if (match.isPresent()) {
-                return fromMove(segmentIndex, text, match.get(), FeedbackMatchConfidence.MEDIUM, source);
+                    .findFirst()
+                    .orElse(null);
+            if (matched != null) {
+                return matched;
             }
         }
-
-        return new FeedbackMatchResponse(segmentIndex, text, null, null, null, null, null, FeedbackMatchConfidence.NONE, source);
+        return null;
     }
 
-    private FeedbackMatchResponse fromMove(
+    private MoveAnalysisResponse moveByPly(int ply, List<MoveAnalysisResponse> moves) {
+        return moves.stream()
+                .filter(move -> move.ply() == ply)
+                .findFirst()
+                .orElse(null);
+    }
+
+    private FeedbackMatchResponse toResponse(
             int segmentIndex,
             String text,
             MoveAnalysisResponse move,
@@ -101,40 +140,18 @@ public class FeedbackMatchService {
         return new FeedbackMatchResponse(
                 segmentIndex,
                 text,
-                move.ply(),
-                move.moveNumber(),
-                move.side(),
-                move.san(),
-                move.uci(),
+                move == null ? null : move.ply(),
+                move == null ? null : move.moveNumber(),
+                move == null ? null : move.side(),
+                move == null ? null : move.san(),
+                move == null ? null : move.uci(),
                 confidence,
                 source
         );
     }
 
-    private Optional<MoveAnalysisResponse> findByPly(List<MoveAnalysisResponse> moves, int ply) {
-        if (ply < 1 || ply > moves.size()) {
-            return Optional.empty();
-        }
-        return moves.stream().filter(move -> move.ply() == ply).findFirst();
-    }
-
-    private List<String> segment(String aiResponse) {
-        String text = aiResponse == null ? "" : aiResponse.trim();
-        if (text.isBlank()) {
-            return List.of();
-        }
-        String[] blankSplit = text.split("\\R\\s*\\R+");
-        List<String> segments = Arrays.stream(blankSplit)
-                .map(String::trim)
-                .filter(segment -> !segment.isBlank())
-                .toList();
-        if (segments.size() > 1) {
-            return segments;
-        }
-        return Arrays.stream(text.split("\\R(?=\\s*(?:#{1,6}\\s+|[-*]\\s+|\\d+[.)]\\s+))"))
-                .map(String::trim)
-                .filter(segment -> !segment.isBlank())
-                .toList();
+    private FeedbackMatchConfidence confidenceFor(MoveAnalysisResponse move) {
+        return move == null ? FeedbackMatchConfidence.NONE : FeedbackMatchConfidence.HIGH;
     }
 
     private String normalizeSan(String value) {
@@ -143,8 +160,12 @@ public class FeedbackMatchService {
         }
         return value.trim()
                 .replace('0', 'O')
-                .replaceAll("[!?+#]+$", "")
-                .replaceAll("e\\.p\\.$", "")
-                .trim();
+                .replaceAll("[+#?!]+$", "")
+                .replace("x", "")
+                .toUpperCase();
+    }
+
+    private CustomException invalidMatch() {
+        return new CustomException(ErrorCode.CHESS_REVIEW_INVALID_MATCH);
     }
 }
