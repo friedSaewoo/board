@@ -55,7 +55,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeMenu, setActiveMenu, isA
           onClick={() => setActiveMenu('chessReviews')}
           style={{ border: 'none', background: 'none', width: '100%', textAlign: 'left' }}
         >
-          <span>♜</span>
+          <span>🏁</span>
           <span>체스 리뷰 게시판</span>
         </button>
         <button
