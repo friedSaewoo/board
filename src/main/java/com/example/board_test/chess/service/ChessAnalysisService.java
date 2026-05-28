@@ -10,6 +10,8 @@ import com.example.board_test.chess.model.MoveClassification;
 import com.example.board_test.chess.model.ParsedGame;
 import com.example.board_test.chess.model.ParsedMove;
 import com.example.board_test.chess.model.PositionEvaluation;
+import com.example.board_test.chessreview.entity.ChessAnalysisDraft;
+import com.example.board_test.chessreview.service.ChessAnalysisDraftService;
 import com.example.board_test.global.exception.CustomException;
 import com.example.board_test.global.exception.ErrorCode;
 import org.springframework.stereotype.Service;
@@ -27,22 +29,43 @@ public class ChessAnalysisService {
     private final MoveClassificationService moveClassificationService;
     private final KoreanAiPromptService koreanAiPromptService;
     private final ChessAnalysisProperties properties;
+    private final ChessAnalysisDraftService chessAnalysisDraftService;
 
     public ChessAnalysisService(
             PgnParserService pgnParserService,
             StockfishClient stockfishClient,
             MoveClassificationService moveClassificationService,
             KoreanAiPromptService koreanAiPromptService,
-            ChessAnalysisProperties properties
+            ChessAnalysisProperties properties,
+            ChessAnalysisDraftService chessAnalysisDraftService
     ) {
         this.pgnParserService = pgnParserService;
         this.stockfishClient = stockfishClient;
         this.moveClassificationService = moveClassificationService;
         this.koreanAiPromptService = koreanAiPromptService;
         this.properties = properties;
+        this.chessAnalysisDraftService = chessAnalysisDraftService;
+    }
+
+    ChessAnalysisService(
+            PgnParserService pgnParserService,
+            StockfishClient stockfishClient,
+            MoveClassificationService moveClassificationService,
+            KoreanAiPromptService koreanAiPromptService,
+            ChessAnalysisProperties properties
+    ) {
+        this(pgnParserService, stockfishClient, moveClassificationService, koreanAiPromptService, properties, null);
     }
 
     public ChessAnalysisResponse analyze(ChessAnalysisRequest request) {
+        return analyzeInternal(request, null);
+    }
+
+    public ChessAnalysisResponse analyze(ChessAnalysisRequest request, String ownerEmail) {
+        return analyzeInternal(request, ownerEmail);
+    }
+
+    private ChessAnalysisResponse analyzeInternal(ChessAnalysisRequest request, String ownerEmail) {
         ParsedGame game = pgnParserService.parse(request.pgn());
         validateAnalysisBudget(game.moves().size());
 
@@ -51,8 +74,22 @@ public class ChessAnalysisService {
         AnalysisSummaryResponse summary = buildSummary(moveAnalyses, request.playerColor());
         GameMetadataResponse metadata = GameMetadataResponse.from(game.headers());
         String prompt = koreanAiPromptService.buildPrompt(request.pgn(), request.playerColor(), metadata, summary, moveAnalyses);
+        String analysisId = null;
+        if (ownerEmail != null && !ownerEmail.isBlank() && chessAnalysisDraftService != null) {
+            ChessAnalysisDraft draft = chessAnalysisDraftService.create(
+                    ownerEmail,
+                    request.pgn(),
+                    metadata,
+                    summary,
+                    moveAnalyses,
+                    prompt,
+                    request.playerColor(),
+                    game.moves().size()
+            );
+            analysisId = draft.getAnalysisId();
+        }
 
-        return new ChessAnalysisResponse(metadata, request.playerColor(), game.moves().size(), summary, moveAnalyses, prompt);
+        return new ChessAnalysisResponse(metadata, request.playerColor(), game.moves().size(), summary, moveAnalyses, prompt, analysisId);
     }
 
     private void validateAnalysisBudget(int plies) {
