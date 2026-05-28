@@ -1052,6 +1052,32 @@ button, input, textarea, select {
   max-width: 980px;
 }
 
+.chess-saved-board {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background-color: hsl(var(--primary-h), var(--primary-s), 97%);
+}
+
+[data-theme="dark"] .chess-saved-board {
+  background-color: hsl(var(--primary-h), calc(var(--primary-s) - 20%), 16%);
+}
+
+.chess-saved-board strong {
+  color: var(--text-main);
+}
+
+.chess-saved-board p {
+  color: var(--text-muted);
+  font-size: 0.84rem;
+  margin-top: 4px;
+}
+
 .chess-prompt-textarea {
   min-height: 280px;
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
@@ -1065,5 +1091,10 @@ button, input, textarea, select {
 
   .chess-color-option {
     width: 100%;
+  }
+
+  .chess-saved-board {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }

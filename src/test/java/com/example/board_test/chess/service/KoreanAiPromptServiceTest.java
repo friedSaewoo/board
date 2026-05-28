@@ -43,6 +43,8 @@ class KoreanAiPromptServiceTest {
                 .contains("초반 수순")
                 .contains("오프닝 정석 구간")
                 .contains("일반적인/정석적인 오프닝 수")
+                .contains("초반 수의 목적")
+                .contains("최대 12수")
                 .contains("1. e4(e2e4)")
                 .contains("베스트/좋은 수 후보")
                 .contains("블런더/큰 실수 후보")
