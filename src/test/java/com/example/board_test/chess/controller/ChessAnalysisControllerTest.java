@@ -64,13 +64,14 @@ class ChessAnalysisControllerTest {
 
     @Test
     void validAuthenticatedRequestReturnsAnalysisContract() throws Exception {
-        when(chessAnalysisService.analyze(any())).thenReturn(sampleResponse());
+        when(chessAnalysisService.analyze(any(), any())).thenReturn(sampleResponse());
 
         mockMvc.perform(post("/chess/analyze")
                         .with(user("player@example.com"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new ChessAnalysisRequest("1. e4 e5", PlayerColor.WHITE))))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.analysisId").value("analysis-public-id"))
                 .andExpect(jsonPath("$.metadata.event").value("Casual"))
                 .andExpect(jsonPath("$.playerColor").value("WHITE"))
                 .andExpect(jsonPath("$.moveCount").value(2))
@@ -103,7 +104,7 @@ class ChessAnalysisControllerTest {
     @Test
     @WithMockUser
     void malformedPgnReturnsControlledChessError() throws Exception {
-        when(chessAnalysisService.analyze(any())).thenThrow(new CustomException(ErrorCode.CHESS_INVALID_PGN));
+        when(chessAnalysisService.analyze(any(), any())).thenThrow(new CustomException(ErrorCode.CHESS_INVALID_PGN));
 
         mockMvc.perform(post("/chess/analyze")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -115,7 +116,7 @@ class ChessAnalysisControllerTest {
     @Test
     @WithMockUser
     void unavailableStockfishReturnsServiceUnavailableError() throws Exception {
-        when(chessAnalysisService.analyze(any())).thenThrow(new CustomException(ErrorCode.CHESS_STOCKFISH_UNAVAILABLE));
+        when(chessAnalysisService.analyze(any(), any())).thenThrow(new CustomException(ErrorCode.CHESS_STOCKFISH_UNAVAILABLE));
 
         mockMvc.perform(post("/chess/analyze")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -126,6 +127,7 @@ class ChessAnalysisControllerTest {
 
     private ChessAnalysisResponse sampleResponse() {
         return new ChessAnalysisResponse(
+                "analysis-public-id",
                 GameMetadataResponse.from(Map.of("Event", "Casual", "White", "User", "Black", "Opponent", "Result", "1-0")),
                 PlayerColor.WHITE,
                 2,

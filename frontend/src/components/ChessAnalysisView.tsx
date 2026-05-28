@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Board, ChessAnalysisResponse, PlayerColor, Toast } from '../types';
+import { createChessReview } from '../api/chessReviews';
+import { ChessAnalysisResponse, ChessReviewSummary, PlayerColor, Toast } from '../types';
 
 interface ChessAnalysisViewProps {
   onToast: (message: string, type: Toast['type']) => void;
   onSessionExpired: () => void;
-  onViewSavedBoard: (id: number) => void;
+  onReviewCreated: (review: ChessReviewSummary) => void;
 }
 
 type ErrorBody = {
@@ -12,7 +13,7 @@ type ErrorBody = {
   errors?: Array<{ field?: string; reason?: string }>;
 };
 
-const sideLabel = (side: PlayerColor | string) => (side === 'WHITE' ? '백' : side === 'BLACK' ? '흑' : side);
+const sideLabel = (side: PlayerColor | string | null | undefined) => (side === 'WHITE' ? '백' : side === 'BLACK' ? '흑' : side || '-');
 
 const formatNumber = (value?: number | null) => {
   if (typeof value !== 'number') return '-';
@@ -28,81 +29,22 @@ const formatScore = (cp?: number | null, mate?: number | null) => {
 const metadataEntries = (metadata: ChessAnalysisResponse['metadata']) => Object.entries(metadata || {})
   .filter(([, value]) => value !== undefined && value !== null && String(value).trim().length > 0);
 
-const metadataValue = (
-  metadata: ChessAnalysisResponse['metadata'],
-  keys: string[],
-  fallback = '-',
-) => {
-  for (const key of keys) {
-    const value = metadata?.[key];
-    if (value !== undefined && value !== null && String(value).trim()) {
-      return String(value).trim();
-    }
-  }
-  return fallback;
-};
+const isAuthFailure = (response: Response) => response.status === 401 || response.status === 403;
 
-const buildBoardTitle = (analysis: ChessAnalysisResponse) => {
-  const event = metadataValue(analysis.metadata, ['event', 'Event'], '');
-  const white = metadataValue(analysis.metadata, ['white', 'White']);
-  const black = metadataValue(analysis.metadata, ['black', 'Black']);
-  const label = event || `${white} vs ${black}`;
-
-  return `[체스 분석] ${label}`.slice(0, 100);
-};
-
-const buildBoardContent = (analysis: ChessAnalysisResponse) => analysis.aiPrompt;
-
-export const ChessAnalysisView: React.FC<ChessAnalysisViewProps> = ({ onToast, onSessionExpired, onViewSavedBoard }) => {
+export const ChessAnalysisView: React.FC<ChessAnalysisViewProps> = ({ onToast, onSessionExpired, onReviewCreated }) => {
   const [pgn, setPgn] = useState('');
   const [playerColor, setPlayerColor] = useState<PlayerColor>('WHITE');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSavingBoard, setIsSavingBoard] = useState(false);
+  const [isCreatingReview, setIsCreatingReview] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<ChessAnalysisResponse | null>(null);
-  const [savedBoard, setSavedBoard] = useState<Board | null>(null);
+  const [aiResponse, setAiResponse] = useState('');
+  const [createdReview, setCreatedReview] = useState<ChessReviewSummary | null>(null);
 
   const readErrorMessage = async (response: Response, fallback = '체스 분석 요청에 실패했습니다.') => {
     const body = await response.json().catch(() => ({} as ErrorBody)) as ErrorBody;
     const fieldError = body.errors?.find((item) => item.reason)?.reason;
     return fieldError || body.message || fallback;
-  };
-
-  const saveAnalysisAsBoardPost = async (analysis: ChessAnalysisResponse) => {
-    setIsSavingBoard(true);
-
-    try {
-      const response = await fetch('/boards', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: buildBoardTitle(analysis),
-          contents: buildBoardContent(analysis),
-        }),
-        credentials: 'include',
-      });
-
-      if (response.status === 401 || response.status === 403) {
-        onSessionExpired();
-        throw new Error('로그인 세션이 만료되어 게시판 자동 저장에 실패했습니다.');
-      }
-
-      if (!response.ok) {
-        throw new Error(await readErrorMessage(response, '게시판 자동 저장에 실패했습니다.'));
-      }
-
-      const board = await response.json() as Board;
-      setSavedBoard(board);
-      onToast('AI 복사용 프롬프트를 게시판에 자동 저장했습니다.', 'success');
-    } catch (err) {
-      console.error(err);
-      const message = err instanceof Error ? err.message : '게시판 자동 저장 중 오류가 발생했습니다.';
-      onToast(`분석은 완료됐지만 ${message}`, 'error');
-    } finally {
-      setIsSavingBoard(false);
-    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -112,11 +54,14 @@ export const ChessAnalysisView: React.FC<ChessAnalysisViewProps> = ({ onToast, o
     if (!trimmedPgn) {
       setError('PGN 텍스트를 입력해 주세요. URL, 이미지, OCR 입력은 지원하지 않습니다.');
       setResult(null);
+      setAiResponse('');
+      setCreatedReview(null);
       return;
     }
 
     setError('');
-    setSavedBoard(null);
+    setAiResponse('');
+    setCreatedReview(null);
     setIsSubmitting(true);
 
     try {
@@ -129,7 +74,7 @@ export const ChessAnalysisView: React.FC<ChessAnalysisViewProps> = ({ onToast, o
         credentials: 'include',
       });
 
-      if (response.status === 401 || response.status === 403) {
+      if (isAuthFailure(response)) {
         onSessionExpired();
         throw new Error('로그인 세션이 만료되었습니다. 다시 로그인해 주세요.');
       }
@@ -149,8 +94,7 @@ export const ChessAnalysisView: React.FC<ChessAnalysisViewProps> = ({ onToast, o
 
       const data = await response.json() as ChessAnalysisResponse;
       setResult(data);
-      onToast('체스 분석이 완료되었습니다.', 'success');
-      await saveAnalysisAsBoardPost(data);
+      onToast('체스 분석이 완료되었습니다. 프롬프트를 외부 AI에 붙여넣고 응답을 다시 입력해 주세요.', 'success');
     } catch (err) {
       const message = err instanceof Error ? err.message : '체스 분석 요청 중 오류가 발생했습니다.';
       setError(message);
@@ -185,7 +129,40 @@ export const ChessAnalysisView: React.FC<ChessAnalysisViewProps> = ({ onToast, o
     }
   };
 
+  const handleCreateReview = async () => {
+    const analysisId = result?.analysisId?.trim();
+    const trimmedAiResponse = aiResponse.trim();
+
+    if (!result || !analysisId || !trimmedAiResponse) {
+      return;
+    }
+
+    setIsCreatingReview(true);
+    setError('');
+
+    try {
+      const review = await createChessReview({ analysisId, aiResponse: trimmedAiResponse }) as ChessReviewSummary;
+      setCreatedReview(review);
+      onToast('체스 리뷰가 전용 게시판에 생성되었습니다.', 'success');
+      onReviewCreated(review);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '체스 리뷰 생성 중 오류가 발생했습니다.';
+      setError(message);
+      onToast(message, 'error');
+    } finally {
+      setIsCreatingReview(false);
+    }
+  };
+
+  const handleReviewCreateKeyDown = async (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+      event.preventDefault();
+      await handleCreateReview();
+    }
+  };
+
   const entries = result ? metadataEntries(result.metadata) : [];
+  const canCreateReview = Boolean(result?.analysisId?.trim()) && aiResponse.trim().length > 0 && !isCreatingReview;
 
   return (
     <div className="chess-analysis-layout">
@@ -212,7 +189,7 @@ export const ChessAnalysisView: React.FC<ChessAnalysisViewProps> = ({ onToast, o
               onChange={(event) => setPgn(event.target.value)}
               disabled={isSubmitting}
             />
-            <p className="chess-helper-text">비목표 유지: URL 가져오기, 이미지/OCR 업로드, 보드 리플레이, AI API 호출은 제공하지 않습니다.</p>
+            <p className="chess-helper-text">분석 결과는 숨김 초안으로 저장되고, AI 응답을 붙여넣어야 전용 체스 리뷰 게시글이 생성됩니다.</p>
           </div>
 
           <div className="form-group">
@@ -358,39 +335,130 @@ export const ChessAnalysisView: React.FC<ChessAnalysisViewProps> = ({ onToast, o
             <div className="section-header">
               <div>
                 <h2 className="section-title">한국어 AI 코칭 프롬프트</h2>
-                <p className="chess-helper-text">앱은 AI API를 호출하지 않습니다. 아래 프롬프트는 분석 완료 후 게시판에도 자동 저장됩니다.</p>
+                <p className="chess-helper-text">앱은 AI API를 호출하지 않습니다. GPT/Gemini에 프롬프트를 붙여넣고, AI 응답을 아래에 붙여넣어 리뷰를 생성하세요.</p>
               </div>
               <button className="btn btn-secondary" type="button" onClick={handleCopyPrompt}>
                 📋 프롬프트 복사
               </button>
             </div>
-            {(isSavingBoard || savedBoard) && (
-              <div className="chess-saved-board">
-                <div>
-                  <strong>{isSavingBoard ? '게시판 자동 저장 중...' : '게시판 자동 저장 완료'}</strong>
-                  <p>
-                    {savedBoard
-                      ? `#${savedBoard.boardId} ${savedBoard.title}`
-                      : '외부 AI에 붙여넣을 프롬프트만 새 게시글로 등록하고 있습니다.'}
-                  </p>
-                </div>
-                {savedBoard && (
-                  <button
-                    className="btn btn-secondary"
-                    type="button"
-                    onClick={() => onViewSavedBoard(savedBoard.boardId)}
-                  >
-                    게시글 보기
-                  </button>
-                )}
-              </div>
-            )}
             <textarea
               className="form-input form-textarea chess-prompt-textarea"
               value={result.aiPrompt}
               readOnly
               aria-label="한국어 AI 코칭 프롬프트"
             />
+            <div className="form-group chess-ai-response-group">
+              <label className="form-label" htmlFor="chess-ai-response">외부 AI 응답</label>
+              <textarea
+                id="chess-ai-response"
+                className="form-input form-textarea chess-ai-response-textarea"
+                placeholder="GPT/Gemini 등 외부 AI의 응답을 여기에 붙여넣으세요."
+                value={aiResponse}
+                onChange={(event) => setAiResponse(event.target.value)}
+                disabled={isCreatingReview}
+              />
+            </div>
+            <button className="btn btn-primary" type="button" disabled={!canCreateReview} onClick={handleCreateReview}>
+              {isCreatingReview ? '리뷰 생성 중...' : '체스 리뷰 생성'}
+            </button>
+          </section>
+
+          <section className="section-card chess-review-create-card">
+            <div className="section-header">
+              <div>
+                <h2 className="section-title">체스 리뷰 생성</h2>
+                <p className="chess-helper-text">AI 응답은 전용 체스 리뷰 게시판에만 저장되며, 일반 게시판에는 자동 등록되지 않습니다.</p>
+              </div>
+            </div>
+
+            {!result.analysisId && (
+              <div className="form-error">⚠️ 분석 응답에 analysisId가 없어 리뷰를 생성할 수 없습니다. 백엔드 초안 저장 응답을 확인해 주세요.</div>
+            )}
+
+            {createdReview && (
+              <div className="chess-review-created-banner">
+                <div>
+                  <strong>체스 리뷰 생성 완료</strong>
+                  <p>#{createdReview.id} {createdReview.title}</p>
+                </div>
+                <button className="btn btn-secondary" type="button" onClick={() => onReviewCreated(createdReview)}>
+                  리뷰 열기
+                </button>
+              </div>
+            )}
+
+            <div className="form-group">
+              <label className="form-label" htmlFor="ai-response">외부 AI 응답</label>
+              <textarea
+                id="ai-response"
+                className="form-input form-textarea chess-ai-response-textarea"
+                value={aiResponse}
+                onChange={(event) => setAiResponse(event.target.value)}
+                onKeyDown={handleReviewCreateKeyDown}
+                placeholder="GPT/Gemini 등 외부 AI가 반환한 한국어 리뷰를 붙여넣으세요. Ctrl/⌘ + Enter로 생성할 수 있습니다."
+                disabled={isCreatingReview}
+              />
+            </div>
+
+            <button className="btn btn-primary" type="button" disabled={!canCreateReview} onClick={handleCreateReview}>
+              {isCreatingReview ? (
+                <>
+                  <div className="loading-spinner" style={{ width: '14px', height: '14px', borderWidth: '2px' }} />
+                  리뷰 생성 중...
+                </>
+              ) : (
+                '체스 리뷰 생성'
+              )}
+            </button>
+          </section>
+
+          <section className="section-card chess-review-create-card">
+            <div className="section-header">
+              <div>
+                <h2 className="section-title">체스 리뷰 생성</h2>
+                <p className="chess-helper-text">AI 응답은 전용 체스 리뷰 게시판에만 저장되며, 일반 게시판에는 자동 등록되지 않습니다.</p>
+              </div>
+            </div>
+
+            {!result.analysisId && (
+              <div className="form-error">⚠️ 분석 응답에 analysisId가 없어 리뷰를 생성할 수 없습니다. 백엔드 초안 저장 응답을 확인해 주세요.</div>
+            )}
+
+            {createdReview && (
+              <div className="chess-review-created-banner">
+                <div>
+                  <strong>체스 리뷰 생성 완료</strong>
+                  <p>#{createdReview.id} {createdReview.title}</p>
+                </div>
+                <button className="btn btn-secondary" type="button" onClick={() => onReviewCreated(createdReview)}>
+                  리뷰 열기
+                </button>
+              </div>
+            )}
+
+            <div className="form-group">
+              <label className="form-label" htmlFor="ai-response">외부 AI 응답</label>
+              <textarea
+                id="ai-response"
+                className="form-input form-textarea chess-ai-response-textarea"
+                value={aiResponse}
+                onChange={(event) => setAiResponse(event.target.value)}
+                onKeyDown={handleReviewCreateKeyDown}
+                placeholder="GPT/Gemini 등 외부 AI가 반환한 한국어 리뷰를 붙여넣으세요. Ctrl/⌘ + Enter로 생성할 수 있습니다."
+                disabled={isCreatingReview}
+              />
+            </div>
+
+            <button className="btn btn-primary" type="button" disabled={!canCreateReview} onClick={handleCreateReview}>
+              {isCreatingReview ? (
+                <>
+                  <div className="loading-spinner" style={{ width: '14px', height: '14px', borderWidth: '2px' }} />
+                  리뷰 생성 중...
+                </>
+              ) : (
+                '체스 리뷰 생성'
+              )}
+            </button>
           </section>
         </>
       )}

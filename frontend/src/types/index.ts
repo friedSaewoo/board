@@ -17,8 +17,8 @@ export interface PageInfo {
   hasNext: boolean;
 }
 
-export interface PagedResult {
-  content: Board[];
+export interface PagedResult<T = Board> {
+  content: T[];
   pageInfo: PageInfo;
 }
 
@@ -37,7 +37,7 @@ export interface Member {
 
 export type PlayerColor = 'WHITE' | 'BLACK';
 
-export type MoveClassification = 'GOOD' | 'INACCURACY' | 'MISTAKE' | 'BLUNDER' | string;
+export type MoveClassification = 'BEST' | 'GOOD' | 'INACCURACY' | 'MISTAKE' | 'BLUNDER' | string;
 
 export interface ChessAnalysisRequest {
   pgn: string;
@@ -74,6 +74,7 @@ export interface ChessMoveAnalysis {
 }
 
 export interface ChessAnalysisResponse {
+  analysisId: string;
   metadata: ChessGameMetadata;
   playerColor: PlayerColor;
   moveCount: number;
@@ -82,4 +83,48 @@ export interface ChessAnalysisResponse {
   aiPrompt: string;
 }
 
-export type ActiveMenu = 'dashboard' | 'board' | 'chess' | 'settings' | 'auth';
+export type FeedbackMatchConfidence = 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE';
+export type FeedbackMatchSource = 'AUTO' | 'MANUAL';
+
+export interface FeedbackMatch {
+  segmentIndex: number;
+  text: string;
+  matchedPly: number | null;
+  matchedMoveNumber?: number | null;
+  matchedSide?: PlayerColor | string | null;
+  matchedSan?: string | null;
+  matchedUci?: string | null;
+  confidence: FeedbackMatchConfidence;
+  source: FeedbackMatchSource;
+}
+
+export interface ChessReviewSummary {
+  id: number;
+  reviewId?: number;
+  title: string;
+  whiteName?: string | null;
+  blackName?: string | null;
+  result?: string | null;
+  playerColor: PlayerColor;
+  moveCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ChessReviewDetail extends ChessReviewSummary {
+  originalPgn: string;
+  metadata: ChessGameMetadata;
+  summary: ChessAnalysisSummary;
+  moves: ChessMoveAnalysis[];
+  aiPrompt: string;
+  aiResponse: string;
+  feedbackMatches: FeedbackMatch[];
+  fenSnapshots?: string[];
+}
+
+export interface ChessReviewCreateRequest {
+  analysisId: string;
+  aiResponse: string;
+}
+
+export type ActiveMenu = 'dashboard' | 'board' | 'chess' | 'chessReviews' | 'settings' | 'auth';
