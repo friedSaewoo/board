@@ -127,17 +127,16 @@ class ChessAnalysisControllerTest {
     }
 
     private ChessAnalysisResponse sampleResponse() {
-        return new ChessAnalysisResponse(
-                "analysis-public-id",
-                GameMetadataResponse.from(Map.of("Event", "Casual", "White", "User", "Black", "Opponent", "Result", "1-0")),
-                PlayerColor.WHITE,
-                2,
-                new AnalysisSummaryResponse(10, 0, 0, 0, 1, "안정적인 경기였습니다."),
-                List.of(
-                        new MoveAnalysisResponse(1, 1, PlayerColor.WHITE, "e4", "e2e4", 20, 18, 2, MoveClassification.GOOD, "e2e4", List.of("e2e4")),
-                        new MoveAnalysisResponse(2, 1, PlayerColor.BLACK, "e5", "e7e5", -18, -15, 0, MoveClassification.BEST, "e7e5", List.of("e7e5"))
-                ),
-                "한국어 코칭 프롬프트"
+        GameMetadataResponse metadata = GameMetadataResponse.from(Map.of(
+                "Event", "Casual",
+                "White", "User",
+                "Black", "Opponent",
+                "Result", "1-0"
+        ));
+        AnalysisSummaryResponse summary = new AnalysisSummaryResponse(10, 0, 0, 0, 1, "안정적인 경기였습니다.");
+        List<MoveAnalysisResponse> moves = List.of(
+                new MoveAnalysisResponse(1, 1, PlayerColor.WHITE, "e4", "e2e4", 20, 18, 2, MoveClassification.GOOD, "e2e4", List.of("e2e4")),
+                new MoveAnalysisResponse(2, 1, PlayerColor.BLACK, "e5", "e7e5", -18, -15, 0, MoveClassification.BEST, "e7e5", List.of("e7e5"))
         );
 
         try {
