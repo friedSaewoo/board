@@ -1098,3 +1098,96 @@ button, input, textarea, select {
     flex-direction: column;
   }
 }
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.btn-compact {
+  padding: 7px 10px;
+  font-size: 0.78rem;
+}
+
+.chess-ai-response-textarea {
+  min-height: 220px;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  line-height: 1.55;
+}
+
+.chess-review-create-card {
+  max-width: 980px;
+}
+
+.chess-review-created-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background-color: hsl(var(--primary-h), var(--primary-s), 97%);
+}
+
+[data-theme="dark"] .chess-review-created-banner {
+  background-color: hsl(var(--primary-h), calc(var(--primary-s) - 20%), 16%);
+}
+
+.chess-review-created-banner strong {
+  color: var(--text-main);
+}
+
+.chess-review-created-banner p {
+  color: var(--text-muted);
+  font-size: 0.84rem;
+  margin-top: 4px;
+}
+
+.chess-review-list-card {
+  max-width: 1180px;
+}
+
+.chess-review-table tbody tr {
+  cursor: pointer;
+}
+
+.chess-empty-cell {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 40px;
+}
+
+.chess-empty-cell .loading-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-width: 2px;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.chess-review-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.chess-review-detail-placeholder {
+  max-width: 920px;
+}
+
+@media (max-width: 768px) {
+  .chess-review-created-banner,
+  .chess-review-detail-placeholder .section-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .chess-review-actions {
+    width: 100%;
+  }
+}
