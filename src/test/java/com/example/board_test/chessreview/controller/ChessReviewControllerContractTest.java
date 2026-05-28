@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
@@ -116,8 +116,7 @@ class ChessReviewControllerContractTest {
         assertThat(requiredText(detail, "originalPgn")).contains("Contract Game");
         assertThat(requiredText(detail, "aiPrompt")).contains("초반 수순");
         assertThat(firstExisting(detail, "moves", "moveAnalyses")).hasSize(4);
-        verify(stockfishClient, atLeastOnce()).startSession();
-        Mockito.verifyNoMoreInteractions(stockfishClient);
+        verify(stockfishClient, times(1)).startSession();
 
         JsonNode patched = patchMatches(ownerEmail, reviewId, """
                 {
