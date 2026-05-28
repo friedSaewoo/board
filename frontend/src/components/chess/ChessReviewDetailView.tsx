@@ -1,6 +1,40 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Chess } from 'chess.js';
-import { ChessMoveAnalysis, ChessReviewDetail, FeedbackMatch, Toast } from '../../types';
+import { ChessMoveAnalysis, ChessGameMetadata, ChessAnalysisSummary, PlayerColor, Toast } from '../../types';
+
+type FeedbackMatchConfidence = 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE';
+type FeedbackMatchSource = 'AUTO' | 'MANUAL';
+
+interface FeedbackMatch {
+  segmentIndex: number;
+  text: string;
+  matchedPly: number | null;
+  matchedMoveNumber: number | null;
+  matchedSide: PlayerColor | string | null;
+  matchedSan: string | null;
+  matchedUci: string | null;
+  confidence: FeedbackMatchConfidence;
+  source: FeedbackMatchSource;
+}
+
+interface ChessReviewDetail {
+  id: number;
+  title: string;
+  whiteName?: string | null;
+  blackName?: string | null;
+  result?: string | null;
+  playerColor: PlayerColor;
+  moveCount: number;
+  originalPgn: string;
+  metadata: ChessGameMetadata;
+  summary: ChessAnalysisSummary;
+  moves: ChessMoveAnalysis[];
+  aiPrompt: string;
+  aiResponse: string;
+  feedbackMatches: FeedbackMatch[];
+  createdAt: string;
+  updatedAt: string;
+}
 
 interface ChessReviewDetailViewProps {
   reviewId: number;
