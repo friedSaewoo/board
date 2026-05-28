@@ -10,11 +10,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class ChessReviewJsonService {
 
-    private final ObjectMapper objectMapper;
-
-    public ChessReviewJsonService(ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
-    }
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public String write(Object value) {
         try {
