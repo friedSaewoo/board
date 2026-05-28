@@ -5,6 +5,7 @@ import com.example.board_test.chess.model.PlayerColor;
 import java.util.List;
 
 public record ChessAnalysisResponse(
+        String analysisId,
         GameMetadataResponse metadata,
         PlayerColor playerColor,
         int moveCount,
@@ -25,6 +26,6 @@ public record ChessAnalysisResponse(
             List<MoveAnalysisResponse> moves,
             String aiPrompt
     ) {
-        this(metadata, playerColor, moveCount, summary, moves, aiPrompt, null);
+        this(null, metadata, playerColor, moveCount, summary, moves, aiPrompt);
     }
 }
