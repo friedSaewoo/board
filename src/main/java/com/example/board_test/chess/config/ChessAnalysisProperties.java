@@ -13,11 +13,8 @@ public class ChessAnalysisProperties {
     /** Default thinking time per analyzed position. */
     private long perMoveTimeoutMillis = 1000;
 
-    /** Overall request budget; long games are rejected before engine work when the estimate exceeds it. */
-    private long totalTimeoutMillis = 120_000;
-
     /** Maximum legal plies accepted for a single request. */
-    private int maxPlies = 240;
+    private int maxPlies = 1000;
 
     public String getCommand() {
         return command;
@@ -33,14 +30,6 @@ public class ChessAnalysisProperties {
 
     public void setPerMoveTimeoutMillis(long perMoveTimeoutMillis) {
         this.perMoveTimeoutMillis = perMoveTimeoutMillis;
-    }
-
-    public long getTotalTimeoutMillis() {
-        return totalTimeoutMillis;
-    }
-
-    public void setTotalTimeoutMillis(long totalTimeoutMillis) {
-        this.totalTimeoutMillis = totalTimeoutMillis;
     }
 
     public int getMaxPlies() {
