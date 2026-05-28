@@ -516,10 +516,41 @@ function App() {
                   <ChessAnalysisView
                     onToast={addToast}
                     onSessionExpired={handleSessionExpired}
-                    onViewSavedBoard={handleViewDetail}
+                    onReviewCreated={(id) => {
+                      setSelectedChessReviewId(id);
+                      setChessReviewView('detail');
+                      setActiveMenu('chessReviews');
+                    }}
                   />
                 ) : (
                   renderProtectedNotice('체스 PGN 분석을 실행하려면 먼저 로그인해 주세요.')
+                )
+              )}
+
+              {activeMenu === 'chessReviews' && (
+                currentUser ? (
+                  chessReviewView === 'detail' && selectedChessReviewId ? (
+                    <ChessReviewDetailView
+                      reviewId={selectedChessReviewId}
+                      onBack={() => {
+                        setChessReviewView('list');
+                        setSelectedChessReviewId(null);
+                      }}
+                      onToast={addToast}
+                      onSessionExpired={handleSessionExpired}
+                    />
+                  ) : (
+                    <ChessReviewListView
+                      onToast={addToast}
+                      onSessionExpired={handleSessionExpired}
+                      onOpenReview={(id) => {
+                        setSelectedChessReviewId(id);
+                        setChessReviewView('detail');
+                      }}
+                    />
+                  )
+                ) : (
+                  renderProtectedNotice('저장된 체스 리뷰를 보려면 먼저 로그인해 주세요.')
                 )
               )}
 
