@@ -65,25 +65,28 @@ cd frontend && npm run lint
 - Review probe confirmed the missing backend draft/review domain, stale generic-board auto-save flow, missing dedicated routing, missing `chess.js`/matcher fixture, and security matcher risk.
 - Test probe confirmed existing analysis tests are strong but review-domain, ownership, match-validation, and frontend regression coverage are absent.
 
-## Final Integration Verification — latest leader HEAD `b412ed9`
+## Final Integration Verification — post-cleanup integrated HEAD
 
-Run timestamp: 2026-05-28 14:58 KST. Scope remained verification-only; no implementation files were edited.
+Run timestamp: 2026-05-28 15:15 KST. Scope included leader-side conflict cleanup after team completion.
 
 ### Command results
 
-- PASS: `cd frontend && node scripts/check-chess-feedback-matcher.mjs`
-  - Output: `PASS chess feedback matcher fixtures`
-- FAIL: `./gradlew test -x installFrontend -x buildFrontend -x copyFrontend --no-daemon`
-  - Fails during `:compileJava`, before tests run.
-  - First blocker: `src/main/java/com/example/board_test/chess/dto/response/ChessAnalysisResponse.java:15` duplicates the `analysisId` record component/constructor variable/accessor.
-  - Additional backend blockers include unresolved `ownerEmail`/duplicate `analysisId` locals in `ChessAnalysisService`, missing Lombok-generated builders/getters on chess review entities and existing global/member DTOs, and `PagedResult.from(reviews)` generic mismatch in `ChessReviewService`.
-- FAIL: `cd frontend && npm run build`
-  - Fails during TypeScript compile.
-  - `frontend/src/App.tsx:31-38` redeclares `chessReviewView`, `setChessReviewView`, `selectedChessReviewId`, and `setSelectedChessReviewId`.
-  - `frontend/src/api/chessReviews.ts:1` imports missing `ChessReviewCreateRequest` from `../types`.
-  - `frontend/src/components/ChessAnalysisView.tsx:2` imports unused `readApiErrorMessage`.
-  - `frontend/src/components/chess/ChessReviewDetailView.tsx:2` imports `chess.js`, but `frontend/package.json` does not declare a `chess.js` dependency.
+- PASS: `./gradlew test -x installFrontend -x buildFrontend -x copyFrontend --no-daemon`
+  - Output: `BUILD SUCCESSFUL in 26s`
+- PASS: `cd frontend && npm install && node scripts/check-chess-feedback-matcher.mjs && npm run build`
+  - Matcher output: `PASS chess feedback matcher fixtures`
+  - Vite output: `✓ built` with 45 modules transformed.
+- PASS: `git diff --check`
+- PASS: team state before shutdown showed 6 tasks completed, 0 pending, 0 blocked, 0 in progress, 0 failed.
 
-### Current integration decision
+### Resolved integration blockers
 
-The integrated branch is not releasable yet. The matcher fixture is present and passing, but both backend and frontend compile gates fail. Recommended next work is implementation fix-up by the owning backend/frontend lanes before rerunning this verification checklist.
+- Removed duplicate `analysisId` record component and duplicate `ChessAnalysisService` constructor/locals.
+- Removed duplicate chess review state declarations in `App.tsx`.
+- Wired chess review detail navigation to the `chess.js` review board component instead of the placeholder.
+- Kept `chess.js` as a package manifest dependency and removed generated `frontend/node_modules/chess.js` from the branch diff.
+
+### Remaining verification notes
+
+- `cd frontend && npm run lint` still fails because the project has no ESLint configuration; this is a tooling setup gap, not a current TypeScript compile failure.
+- Browser/manual review-board smoke with a live Stockfish Docker service was not run in this lane.
