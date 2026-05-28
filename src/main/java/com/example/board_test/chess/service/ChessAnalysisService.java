@@ -12,8 +12,11 @@ import com.example.board_test.chess.model.ParsedMove;
 import com.example.board_test.chess.model.PositionEvaluation;
 import com.example.board_test.chessreview.entity.ChessAnalysisDraft;
 import com.example.board_test.chessreview.service.ChessAnalysisDraftService;
+import com.example.board_test.chessreview.service.ChessReviewMemberService;
 import com.example.board_test.global.exception.CustomException;
 import com.example.board_test.global.exception.ErrorCode;
+import com.example.board_test.member.entity.Member;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -30,6 +33,26 @@ public class ChessAnalysisService {
     private final KoreanAiPromptService koreanAiPromptService;
     private final ChessAnalysisProperties properties;
     private final ChessAnalysisDraftService chessAnalysisDraftService;
+    private final ChessReviewMemberService chessReviewMemberService;
+
+    @Autowired
+    public ChessAnalysisService(
+            PgnParserService pgnParserService,
+            StockfishClient stockfishClient,
+            MoveClassificationService moveClassificationService,
+            KoreanAiPromptService koreanAiPromptService,
+            ChessAnalysisProperties properties,
+            ChessAnalysisDraftService chessAnalysisDraftService,
+            ChessReviewMemberService chessReviewMemberService
+    ) {
+        this.pgnParserService = pgnParserService;
+        this.stockfishClient = stockfishClient;
+        this.moveClassificationService = moveClassificationService;
+        this.koreanAiPromptService = koreanAiPromptService;
+        this.properties = properties;
+        this.chessAnalysisDraftService = chessAnalysisDraftService;
+        this.chessReviewMemberService = chessReviewMemberService;
+    }
 
     public ChessAnalysisService(
             PgnParserService pgnParserService,
@@ -39,33 +62,30 @@ public class ChessAnalysisService {
             ChessAnalysisProperties properties,
             ChessAnalysisDraftService chessAnalysisDraftService
     ) {
-        this.pgnParserService = pgnParserService;
-        this.stockfishClient = stockfishClient;
-        this.moveClassificationService = moveClassificationService;
-        this.koreanAiPromptService = koreanAiPromptService;
-        this.properties = properties;
-        this.chessAnalysisDraftService = chessAnalysisDraftService;
-    }
-
-    ChessAnalysisService(
-            PgnParserService pgnParserService,
-            StockfishClient stockfishClient,
-            MoveClassificationService moveClassificationService,
-            KoreanAiPromptService koreanAiPromptService,
-            ChessAnalysisProperties properties
-    ) {
-        this(pgnParserService, stockfishClient, moveClassificationService, koreanAiPromptService, properties, null);
+        this(
+                pgnParserService,
+                stockfishClient,
+                moveClassificationService,
+                koreanAiPromptService,
+                properties,
+                null,
+                null
+        );
     }
 
     public ChessAnalysisResponse analyze(ChessAnalysisRequest request) {
-        return analyzeInternal(request, null);
+        return buildAnalysis(request, null);
     }
 
     public ChessAnalysisResponse analyze(ChessAnalysisRequest request, String ownerEmail) {
-        return analyzeInternal(request, ownerEmail);
+        if (chessAnalysisDraftService == null || chessReviewMemberService == null) {
+            throw new CustomException(ErrorCode.MEMBER_NOT_FOUND);
+        }
+        Member owner = chessReviewMemberService.requireMember(ownerEmail);
+        return buildAnalysis(request, owner);
     }
 
-    private ChessAnalysisResponse analyzeInternal(ChessAnalysisRequest request, String ownerEmail) {
+    private ChessAnalysisResponse buildAnalysis(ChessAnalysisRequest request, Member owner) {
         ParsedGame game = pgnParserService.parse(request.pgn());
         validateAnalysisBudget(game.moves().size());
 
@@ -89,7 +109,21 @@ public class ChessAnalysisService {
             analysisId = draft.getAnalysisId();
         }
 
-        return new ChessAnalysisResponse(metadata, request.playerColor(), game.moves().size(), summary, moveAnalyses, prompt, analysisId);
+        String analysisId = null;
+        if (owner != null) {
+            ChessAnalysisDraft draft = chessAnalysisDraftService.createDraft(
+                    owner,
+                    request.pgn(),
+                    metadata,
+                    summary,
+                    moveAnalyses,
+                    prompt,
+                    request.playerColor()
+            );
+            analysisId = draft.getAnalysisId();
+        }
+
+        return new ChessAnalysisResponse(analysisId, metadata, request.playerColor(), game.moves().size(), summary, moveAnalyses, prompt);
     }
 
     private void validateAnalysisBudget(int plies) {

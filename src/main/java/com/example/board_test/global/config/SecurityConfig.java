@@ -21,7 +21,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/chess/analyze").authenticated()
-                        .requestMatchers("/chess/reviews/**").authenticated()
+                        .requestMatchers("/chess/reviews", "/chess/reviews/**").authenticated()
                         .requestMatchers(
 //                                "/",
 //                                "/members/signup",
