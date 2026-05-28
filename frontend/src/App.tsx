@@ -9,6 +9,8 @@ import { BoardEditView } from './components/BoardEditView';
 import { ToastContainer } from './components/ToastContainer';
 import { AuthView } from './components/AuthView';
 import { ChessAnalysisView } from './components/ChessAnalysisView';
+import { ChessReviewListView } from './components/chess/ChessReviewListView';
+import { ChessReviewDetailView } from './components/chess/ChessReviewDetailView';
 import { ActiveMenu, Board, Member, PageInfo, Toast } from './types';
 
 function App() {
@@ -29,6 +31,8 @@ function App() {
   const [boardView, setBoardView] = useState<'list' | 'detail' | 'write' | 'edit'>('list');
   const [selectedBoard, setSelectedBoard] = useState<Board | null>(null);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
+  const [chessReviewView, setChessReviewView] = useState<'list' | 'detail'>('list');
+  const [selectedChessReviewId, setSelectedChessReviewId] = useState<number | null>(null);
 
   // 알림 토스트 상태
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -92,6 +96,10 @@ function App() {
     setActiveMenu(menu);
     if (menu === 'board') {
       setBoardView('list');
+    }
+    if (menu === 'chessReviews') {
+      setChessReviewView('list');
+      setSelectedChessReviewId(null);
     }
   };
 
@@ -174,6 +182,7 @@ function App() {
   const handleSessionExpired = () => {
     setCurrentUser(null);
     setSelectedBoard(null);
+    setSelectedChessReviewId(null);
     setBoardView('list');
     setActiveMenu('auth');
     addToast('세션이 만료되었습니다. 다시 로그인해 주세요.', 'info');
@@ -193,6 +202,7 @@ function App() {
       setPageInfo(null);
       setTotalElement(0);
       setSelectedBoard(null);
+      setSelectedChessReviewId(null);
       setBoardView('list');
       setActiveMenu('auth');
       addToast('로그아웃되었습니다.', 'info');
@@ -368,6 +378,7 @@ function App() {
         }
       }
       case 'chess': return '체스 분석';
+      case 'chessReviews': return chessReviewView === 'detail' ? '체스 리뷰 상세' : '체스 리뷰 게시판';
       case 'settings': return '시스템 설정';
       default: return '어드민 패널';
     }
