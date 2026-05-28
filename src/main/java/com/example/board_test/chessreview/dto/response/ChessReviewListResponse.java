@@ -6,7 +6,7 @@ import com.example.board_test.chessreview.entity.ChessReview;
 import java.time.LocalDateTime;
 
 public record ChessReviewListResponse(
-        Long id,
+        Long reviewId,
         String title,
         String whiteName,
         String blackName,

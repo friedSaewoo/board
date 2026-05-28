@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public record ChessReviewResponse(
-        Long id,
+        Long reviewId,
         String sourceAnalysisId,
         String title,
         String whiteName,
@@ -24,7 +24,7 @@ public record ChessReviewResponse(
         List<MoveAnalysisResponse> moves,
         String aiPrompt,
         String aiResponse,
-        List<FeedbackMatchResponse> feedbackMatches,
+        List<FeedbackMatchResponse> matches,
         String fenSnapshotsJson,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
@@ -34,7 +34,7 @@ public record ChessReviewResponse(
             GameMetadataResponse metadata,
             AnalysisSummaryResponse summary,
             List<MoveAnalysisResponse> moves,
-            List<FeedbackMatchResponse> feedbackMatches
+            List<FeedbackMatchResponse> matches
     ) {
         return new ChessReviewResponse(
                 review.getId(),
@@ -51,7 +51,7 @@ public record ChessReviewResponse(
                 moves,
                 review.getAiPrompt(),
                 review.getAiResponse(),
-                feedbackMatches,
+                matches,
                 review.getFenSnapshotsJson(),
                 review.getCreatedAt(),
                 review.getUpdatedAt()
