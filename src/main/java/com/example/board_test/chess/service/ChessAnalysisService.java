@@ -54,13 +54,15 @@ public class ChessAnalysisService {
         this.chessReviewMemberService = chessReviewMemberService;
     }
 
+    @Autowired
     public ChessAnalysisService(
             PgnParserService pgnParserService,
             StockfishClient stockfishClient,
             MoveClassificationService moveClassificationService,
             KoreanAiPromptService koreanAiPromptService,
             ChessAnalysisProperties properties,
-            ChessAnalysisDraftService chessAnalysisDraftService
+            ChessAnalysisDraftService chessAnalysisDraftService,
+            ChessReviewMemberService chessReviewMemberService
     ) {
         this(
                 pgnParserService,
