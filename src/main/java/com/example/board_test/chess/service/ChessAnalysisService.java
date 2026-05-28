@@ -62,10 +62,6 @@ public class ChessAnalysisService {
         if (plies > properties.getMaxPlies()) {
             throw new CustomException(ErrorCode.CHESS_ANALYSIS_LIMIT_EXCEEDED);
         }
-        long estimatedMillis = Math.multiplyExact((long) plies + 1L, properties.getPerMoveTimeoutMillis());
-        if (estimatedMillis > properties.getTotalTimeoutMillis()) {
-            throw new CustomException(ErrorCode.CHESS_ANALYSIS_LIMIT_EXCEEDED);
-        }
     }
 
     private List<PositionEvaluation> analyzePositions(List<ParsedMove> moves) {

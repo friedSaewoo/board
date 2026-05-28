@@ -476,6 +476,7 @@ function App() {
                         onNavigateToList={() => setBoardView('list')}
                         onNavigateToEdit={() => setBoardView('edit')}
                         onDelete={handleDeleteBoard}
+                        onToast={addToast}
                       />
                     )}
                     {boardView === 'write' && (
@@ -504,6 +505,7 @@ function App() {
                   <ChessAnalysisView
                     onToast={addToast}
                     onSessionExpired={handleSessionExpired}
+                    onViewSavedBoard={handleViewDetail}
                   />
                 ) : (
                   renderProtectedNotice('체스 PGN 분석을 실행하려면 먼저 로그인해 주세요.')

@@ -21,10 +21,11 @@ public class Board extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 100)
     private String title;
 
-    @Column(nullable = false)
+    @Lob
+    @Column(nullable = false, columnDefinition = "LONGTEXT")
     private String contents;
 
     public static Board from(String title, String contents) {

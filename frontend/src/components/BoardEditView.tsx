@@ -127,11 +127,11 @@ export const BoardEditView: React.FC<BoardEditViewProps> = ({
           <textarea
             id="edit-contents"
             className="form-input form-textarea"
-            placeholder="내용을 입력하세요 (최대 2000자)"
+            placeholder="내용을 입력하세요 (최대 50000자)"
             value={contents}
             onChange={(e) => setContents(e.target.value)}
             disabled={isSubmitting}
-            maxLength={2000}
+            maxLength={50000}
             style={{ minHeight: '220px' }}
           />
         </div>
