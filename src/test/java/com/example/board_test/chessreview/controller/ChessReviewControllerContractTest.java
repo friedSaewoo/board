@@ -177,25 +177,28 @@ class ChessReviewControllerContractTest {
     }
 
     @Test
-    void reviewEndpointsRequireAuthenticationAndHideOtherOwnersReviews() throws Exception {
-        String ownerEmail = createMemberEmail("owner-sec");
-        String otherEmail = createMemberEmail("other-sec");
-        long reviewId = requiredLong(createReview(ownerEmail, requiredText(analyze(ownerEmail), "analysisId"), "1...e5? 확인"), "reviewId", "id");
-
+    void reviewEndpointsRequireAuthentication() throws Exception {
         mockMvc.perform(get("/chess/reviews"))
                 .andExpect(status().isUnauthorized());
-        mockMvc.perform(get("/chess/reviews/{id}", reviewId))
+        mockMvc.perform(get("/chess/reviews/{id}", 1L))
                 .andExpect(status().isUnauthorized());
         mockMvc.perform(post("/chess/reviews")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isUnauthorized());
-        mockMvc.perform(patch("/chess/reviews/{id}/matches", reviewId)
+        mockMvc.perform(patch("/chess/reviews/{id}/matches", 1L)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"matches\":[]}"))
                 .andExpect(status().isUnauthorized());
-        mockMvc.perform(delete("/chess/reviews/{id}", reviewId))
+        mockMvc.perform(delete("/chess/reviews/{id}", 1L))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void reviewEndpointsHideOtherOwnersReviews() throws Exception {
+        String ownerEmail = createMemberEmail("owner-sec");
+        String otherEmail = createMemberEmail("other-sec");
+        long reviewId = requiredLong(createReview(ownerEmail, requiredText(analyze(ownerEmail), "analysisId"), "1...e5? 확인"), "reviewId", "id");
 
         mockMvc.perform(get("/chess/reviews/{id}", reviewId)
                         .with(user(otherEmail)))
@@ -214,6 +217,21 @@ class ChessReviewControllerContractTest {
                 .andExpect(status().isOk())
                 .andReturn());
         assertThat(firstExisting(otherList, "content", "reviews")).isEmpty();
+    }
+
+    @Test
+    void convertedDraftCannotCreateSecondReview() throws Exception {
+        String ownerEmail = createMemberEmail("converted-owner");
+        String analysisId = requiredText(analyze(ownerEmail), "analysisId");
+        createReview(ownerEmail, analysisId, "첫 번째 AI 응답");
+
+        mockMvc.perform(post("/chess/reviews")
+                        .with(user(ownerEmail))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"analysisId":"%s","aiResponse":"두 번째 생성 시도"}
+                                """.formatted(analysisId)))
+                .andExpect(result -> assertThat(result.getResponse().getStatus()).isIn(400, 404, 409));
     }
 
     @Test
