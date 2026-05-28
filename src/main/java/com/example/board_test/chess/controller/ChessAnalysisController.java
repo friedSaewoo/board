@@ -5,6 +5,7 @@ import com.example.board_test.chess.dto.response.ChessAnalysisResponse;
 import com.example.board_test.chess.service.ChessAnalysisService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,7 +22,10 @@ public class ChessAnalysisController {
     }
 
     @PostMapping("/analyze")
-    public ResponseEntity<ChessAnalysisResponse> analyze(@Valid @RequestBody ChessAnalysisRequest request) {
-        return ResponseEntity.ok(chessAnalysisService.analyze(request));
+    public ResponseEntity<ChessAnalysisResponse> analyze(
+            @Valid @RequestBody ChessAnalysisRequest request,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(chessAnalysisService.analyze(request, authentication.getName()));
     }
 }
