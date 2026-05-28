@@ -1,4 +1,4 @@
-import { ChessReviewCreateRequest, ChessReviewDetail, ChessReviewSummary, PagedResult } from '../types';
+import { ChessReviewCreateRequest, ChessReviewDetail, ChessReviewSummary, FeedbackMatch, PagedResult } from '../types';
 
 export type ErrorBody = {
   message?: string;
@@ -17,6 +17,21 @@ const normalizeReviewId = <T extends { id?: number; reviewId?: number }>(review:
     throw new Error('체스 리뷰 식별자가 응답에 없습니다.');
   }
   return { ...review, id };
+};
+
+export type RawChessReviewDetail = Omit<ChessReviewDetail, 'id' | 'feedbackMatches'> & {
+  id?: number;
+  reviewId?: number;
+  feedbackMatches?: FeedbackMatch[];
+  matches?: FeedbackMatch[];
+};
+
+export const normalizeChessReviewDetail = (review: RawChessReviewDetail): ChessReviewDetail => {
+  const normalized = normalizeReviewId(review);
+  return {
+    ...normalized,
+    feedbackMatches: review.feedbackMatches ?? review.matches ?? [],
+  };
 };
 
 export const fetchChessReviews = async (page: number): Promise<PagedResult<ChessReviewSummary>> => {

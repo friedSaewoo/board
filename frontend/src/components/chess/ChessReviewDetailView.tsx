@@ -1,40 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Chess } from 'chess.js';
-import { ChessMoveAnalysis, ChessGameMetadata, ChessAnalysisSummary, PlayerColor, Toast } from '../../types';
-
-type FeedbackMatchConfidence = 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE';
-type FeedbackMatchSource = 'AUTO' | 'MANUAL';
-
-interface FeedbackMatch {
-  segmentIndex: number;
-  text: string;
-  matchedPly: number | null;
-  matchedMoveNumber: number | null;
-  matchedSide: PlayerColor | string | null;
-  matchedSan: string | null;
-  matchedUci: string | null;
-  confidence: FeedbackMatchConfidence;
-  source: FeedbackMatchSource;
-}
-
-interface ChessReviewDetail {
-  id: number;
-  title: string;
-  whiteName?: string | null;
-  blackName?: string | null;
-  result?: string | null;
-  playerColor: PlayerColor;
-  moveCount: number;
-  originalPgn: string;
-  metadata: ChessGameMetadata;
-  summary: ChessAnalysisSummary;
-  moves: ChessMoveAnalysis[];
-  aiPrompt: string;
-  aiResponse: string;
-  feedbackMatches: FeedbackMatch[];
-  createdAt: string;
-  updatedAt: string;
-}
+import { normalizeChessReviewDetail, RawChessReviewDetail } from '../../api/chessReviews';
+import { ChessMoveAnalysis, ChessReviewDetail, FeedbackMatch, Toast } from '../../types';
 
 interface ChessReviewDetailViewProps {
   reviewId: number;
@@ -93,7 +60,7 @@ export const ChessReviewDetailView: React.FC<ChessReviewDetailViewProps> = ({ re
         throw new Error('로그인 세션이 만료되었습니다.');
       }
       if (!response.ok) throw new Error('체스 리뷰를 불러오지 못했습니다.');
-      const data = await response.json() as ChessReviewDetail;
+      const data = normalizeChessReviewDetail(await response.json() as RawChessReviewDetail);
       setReview(data);
       setEditableMatches(data.feedbackMatches || []);
       setCurrentPly(0);
@@ -139,7 +106,7 @@ export const ChessReviewDetailView: React.FC<ChessReviewDetailViewProps> = ({ re
         throw new Error('로그인 세션이 만료되었습니다.');
       }
       if (!response.ok) throw new Error('매칭 저장에 실패했습니다.');
-      const updated = await response.json() as ChessReviewDetail;
+      const updated = normalizeChessReviewDetail(await response.json() as RawChessReviewDetail);
       setReview(updated);
       setEditableMatches(updated.feedbackMatches || []);
       onToast('AI 피드백 매칭을 저장했습니다.', 'success');
