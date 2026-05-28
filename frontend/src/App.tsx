@@ -38,6 +38,13 @@ function App() {
   const [selectedChessReviewId, setSelectedChessReviewId] = useState<number | null>(null);
   const [isChessReviewLoading, setIsChessReviewLoading] = useState(false);
 
+  const [chessReviews, setChessReviews] = useState<ChessReviewSummary[]>([]);
+  const [chessReviewPageInfo, setChessReviewPageInfo] = useState<PageInfo | null>(null);
+  const [chessReviewCurrentPage, setChessReviewCurrentPage] = useState<number>(1);
+  const [chessReviewView, setChessReviewView] = useState<'list' | 'detail'>('list');
+  const [selectedChessReviewId, setSelectedChessReviewId] = useState<number | null>(null);
+  const [isChessReviewLoading, setIsChessReviewLoading] = useState(false);
+
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   useEffect(() => {
@@ -188,7 +195,6 @@ function App() {
 
   const resetProtectedState = () => {
     setSelectedBoard(null);
-    setSelectedChessReviewId(null);
     setBoardView('list');
     setChessReviews([]);
     setChessReviewPageInfo(null);

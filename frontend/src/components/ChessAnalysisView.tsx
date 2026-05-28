@@ -411,6 +411,55 @@ export const ChessAnalysisView: React.FC<ChessAnalysisViewProps> = ({ onToast, o
               )}
             </button>
           </section>
+
+          <section className="section-card chess-review-create-card">
+            <div className="section-header">
+              <div>
+                <h2 className="section-title">체스 리뷰 생성</h2>
+                <p className="chess-helper-text">AI 응답은 전용 체스 리뷰 게시판에만 저장되며, 일반 게시판에는 자동 등록되지 않습니다.</p>
+              </div>
+            </div>
+
+            {!result.analysisId && (
+              <div className="form-error">⚠️ 분석 응답에 analysisId가 없어 리뷰를 생성할 수 없습니다. 백엔드 초안 저장 응답을 확인해 주세요.</div>
+            )}
+
+            {createdReview && (
+              <div className="chess-review-created-banner">
+                <div>
+                  <strong>체스 리뷰 생성 완료</strong>
+                  <p>#{createdReview.id} {createdReview.title}</p>
+                </div>
+                <button className="btn btn-secondary" type="button" onClick={() => onReviewCreated(createdReview)}>
+                  리뷰 열기
+                </button>
+              </div>
+            )}
+
+            <div className="form-group">
+              <label className="form-label" htmlFor="ai-response">외부 AI 응답</label>
+              <textarea
+                id="ai-response"
+                className="form-input form-textarea chess-ai-response-textarea"
+                value={aiResponse}
+                onChange={(event) => setAiResponse(event.target.value)}
+                onKeyDown={handleReviewCreateKeyDown}
+                placeholder="GPT/Gemini 등 외부 AI가 반환한 한국어 리뷰를 붙여넣으세요. Ctrl/⌘ + Enter로 생성할 수 있습니다."
+                disabled={isCreatingReview}
+              />
+            </div>
+
+            <button className="btn btn-primary" type="button" disabled={!canCreateReview} onClick={handleCreateReview}>
+              {isCreatingReview ? (
+                <>
+                  <div className="loading-spinner" style={{ width: '14px', height: '14px', borderWidth: '2px' }} />
+                  리뷰 생성 중...
+                </>
+              ) : (
+                '체스 리뷰 생성'
+              )}
+            </button>
+          </section>
         </>
       )}
     </div>

@@ -74,7 +74,7 @@ export interface ChessMoveAnalysis {
 }
 
 export interface ChessAnalysisResponse {
-  analysisId?: string | null;
+  analysisId: string;
   metadata: ChessGameMetadata;
   playerColor: PlayerColor;
   moveCount: number;
@@ -90,16 +90,17 @@ export interface FeedbackMatch {
   segmentIndex: number;
   text: string;
   matchedPly: number | null;
-  matchedMoveNumber: number | null;
-  matchedSide: PlayerColor | string | null;
-  matchedSan: string | null;
-  matchedUci: string | null;
+  matchedMoveNumber?: number | null;
+  matchedSide?: PlayerColor | string | null;
+  matchedSan?: string | null;
+  matchedUci?: string | null;
   confidence: FeedbackMatchConfidence;
   source: FeedbackMatchSource;
 }
 
 export interface ChessReviewSummary {
   id: number;
+  reviewId?: number;
   title: string;
   whiteName?: string | null;
   blackName?: string | null;
@@ -111,7 +112,6 @@ export interface ChessReviewSummary {
 }
 
 export interface ChessReviewDetail extends ChessReviewSummary {
-  sourceAnalysisId?: string | null;
   originalPgn: string;
   metadata: ChessGameMetadata;
   summary: ChessAnalysisSummary;
@@ -119,7 +119,12 @@ export interface ChessReviewDetail extends ChessReviewSummary {
   aiPrompt: string;
   aiResponse: string;
   feedbackMatches: FeedbackMatch[];
-  fenSnapshotsJson?: string | null;
+  fenSnapshots?: string[];
+}
+
+export interface ChessReviewCreateRequest {
+  analysisId: string;
+  aiResponse: string;
 }
 
 export type ActiveMenu = 'dashboard' | 'board' | 'chess' | 'chessReviews' | 'settings' | 'auth';
