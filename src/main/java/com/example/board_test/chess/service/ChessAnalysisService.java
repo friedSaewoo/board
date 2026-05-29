@@ -149,7 +149,11 @@ public class ChessAnalysisService {
             int scoreBefore = before.score().toCentipawnEquivalent();
             int scoreAfterFromMoverPerspective = -after.score().toCentipawnEquivalent();
             int centipawnLoss = Math.max(0, scoreBefore - scoreAfterFromMoverPerspective);
-            MoveClassification classification = moveClassificationService.classify(centipawnLoss);
+            MoveClassification classification = moveClassificationService.classify(
+                    scoreBefore,
+                    scoreAfterFromMoverPerspective,
+                    centipawnLoss
+            );
 
             responses.add(new MoveAnalysisResponse(
                     move.ply(),

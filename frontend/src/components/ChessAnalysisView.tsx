@@ -15,6 +15,18 @@ type ErrorBody = {
 
 const sideLabel = (side: PlayerColor | string | null | undefined) => (side === 'WHITE' ? '백' : side === 'BLACK' ? '흑' : side || '-');
 
+const classificationLabel = (classification?: string | null) => {
+  const labels: Record<string, string> = {
+    EXCELLENT: '탁월',
+    BEST: '베스트',
+    GOOD: '좋음',
+    INACCURACY: '부정확',
+    MISTAKE: '실수',
+    BLUNDER: '블런더',
+  };
+  return classification ? labels[classification] || classification : '-';
+};
+
 const formatNumber = (value?: number | null) => {
   if (typeof value !== 'number') return '-';
   return Number.isInteger(value) ? value.toString() : value.toFixed(1);
@@ -226,6 +238,63 @@ export const ChessAnalysisView: React.FC<ChessAnalysisViewProps> = ({ onToast, o
 
       {result && (
         <>
+          <section className="section-card chess-prompt-card">
+            <div className="section-header">
+              <div>
+                <h2 className="section-title">한국어 AI 코칭 프롬프트</h2>
+                <p className="chess-helper-text">앱은 AI API를 호출하지 않습니다. GPT/Gemini에 프롬프트를 붙여넣고, AI 응답을 아래에 붙여넣어 리뷰를 생성하세요.</p>
+              </div>
+              <button className="btn btn-secondary" type="button" onClick={handleCopyPrompt}>
+                📋 프롬프트 복사
+              </button>
+            </div>
+            <textarea
+              className="form-input form-textarea chess-prompt-textarea"
+              value={result.aiPrompt}
+              readOnly
+              aria-label="한국어 AI 코칭 프롬프트"
+            />
+
+            {!result.analysisId && (
+              <div className="form-error">⚠️ 분석 응답에 analysisId가 없어 리뷰를 생성할 수 없습니다. 백엔드 초안 저장 응답을 확인해 주세요.</div>
+            )}
+
+            {createdReview && (
+              <div className="chess-review-created-banner">
+                <div>
+                  <strong>체스 리뷰 생성 완료</strong>
+                  <p>#{createdReview.id} {createdReview.title}</p>
+                </div>
+                <button className="btn btn-secondary" type="button" onClick={() => onReviewCreated(createdReview)}>
+                  리뷰 열기
+                </button>
+              </div>
+            )}
+
+            <div className="form-group chess-ai-response-group">
+              <label className="form-label" htmlFor="chess-ai-response">외부 AI 응답</label>
+              <textarea
+                id="chess-ai-response"
+                className="form-input form-textarea chess-ai-response-textarea"
+                placeholder="GPT/Gemini 등 외부 AI가 반환한 한국어 리뷰를 붙여넣으세요. Ctrl/⌘ + Enter로 생성할 수 있습니다."
+                value={aiResponse}
+                onChange={(event) => setAiResponse(event.target.value)}
+                onKeyDown={handleReviewCreateKeyDown}
+                disabled={isCreatingReview}
+              />
+            </div>
+            <button className="btn btn-primary" type="button" disabled={!canCreateReview} onClick={handleCreateReview}>
+              {isCreatingReview ? (
+                <>
+                  <div className="loading-spinner" style={{ width: '14px', height: '14px', borderWidth: '2px' }} />
+                  리뷰 생성 중...
+                </>
+              ) : (
+                '체스 리뷰 생성'
+              )}
+            </button>
+          </section>
+
           <section className="section-card chess-summary-card">
             <div className="section-header">
               <div>
@@ -258,10 +327,6 @@ export const ChessAnalysisView: React.FC<ChessAnalysisViewProps> = ({ onToast, o
                 <div className="metric-icon">⚡</div>
               </div>
             </div>
-
-            {result.summary.headline && (
-              <div className="chess-headline">{result.summary.headline}</div>
-            )}
 
             {entries.length > 0 && (
               <div className="detail-meta chess-metadata-grid">
@@ -316,7 +381,7 @@ export const ChessAnalysisView: React.FC<ChessAnalysisViewProps> = ({ onToast, o
                         </td>
                         <td>{formatScore(move.scoreBeforeCp, move.scoreBeforeMate)} → {formatScore(move.scoreAfterCp, move.scoreAfterMate)}</td>
                         <td>{formatNumber(move.centipawnLoss)}</td>
-                        <td><span className="chess-pill">{move.classification || '-'}</span></td>
+                        <td><span className="chess-pill">{classificationLabel(move.classification)}</span></td>
                         <td>
                           <strong>{move.bestMove || '-'}</strong>
                           {move.principalVariation && move.principalVariation.length > 0 && (
@@ -331,135 +396,6 @@ export const ChessAnalysisView: React.FC<ChessAnalysisViewProps> = ({ onToast, o
             </div>
           </section>
 
-          <section className="section-card chess-prompt-card">
-            <div className="section-header">
-              <div>
-                <h2 className="section-title">한국어 AI 코칭 프롬프트</h2>
-                <p className="chess-helper-text">앱은 AI API를 호출하지 않습니다. GPT/Gemini에 프롬프트를 붙여넣고, AI 응답을 아래에 붙여넣어 리뷰를 생성하세요.</p>
-              </div>
-              <button className="btn btn-secondary" type="button" onClick={handleCopyPrompt}>
-                📋 프롬프트 복사
-              </button>
-            </div>
-            <textarea
-              className="form-input form-textarea chess-prompt-textarea"
-              value={result.aiPrompt}
-              readOnly
-              aria-label="한국어 AI 코칭 프롬프트"
-            />
-            <div className="form-group chess-ai-response-group">
-              <label className="form-label" htmlFor="chess-ai-response">외부 AI 응답</label>
-              <textarea
-                id="chess-ai-response"
-                className="form-input form-textarea chess-ai-response-textarea"
-                placeholder="GPT/Gemini 등 외부 AI의 응답을 여기에 붙여넣으세요."
-                value={aiResponse}
-                onChange={(event) => setAiResponse(event.target.value)}
-                disabled={isCreatingReview}
-              />
-            </div>
-            <button className="btn btn-primary" type="button" disabled={!canCreateReview} onClick={handleCreateReview}>
-              {isCreatingReview ? '리뷰 생성 중...' : '체스 리뷰 생성'}
-            </button>
-          </section>
-
-          <section className="section-card chess-review-create-card">
-            <div className="section-header">
-              <div>
-                <h2 className="section-title">체스 리뷰 생성</h2>
-                <p className="chess-helper-text">AI 응답은 전용 체스 리뷰 게시판에만 저장되며, 일반 게시판에는 자동 등록되지 않습니다.</p>
-              </div>
-            </div>
-
-            {!result.analysisId && (
-              <div className="form-error">⚠️ 분석 응답에 analysisId가 없어 리뷰를 생성할 수 없습니다. 백엔드 초안 저장 응답을 확인해 주세요.</div>
-            )}
-
-            {createdReview && (
-              <div className="chess-review-created-banner">
-                <div>
-                  <strong>체스 리뷰 생성 완료</strong>
-                  <p>#{createdReview.id} {createdReview.title}</p>
-                </div>
-                <button className="btn btn-secondary" type="button" onClick={() => onReviewCreated(createdReview)}>
-                  리뷰 열기
-                </button>
-              </div>
-            )}
-
-            <div className="form-group">
-              <label className="form-label" htmlFor="ai-response">외부 AI 응답</label>
-              <textarea
-                id="ai-response"
-                className="form-input form-textarea chess-ai-response-textarea"
-                value={aiResponse}
-                onChange={(event) => setAiResponse(event.target.value)}
-                onKeyDown={handleReviewCreateKeyDown}
-                placeholder="GPT/Gemini 등 외부 AI가 반환한 한국어 리뷰를 붙여넣으세요. Ctrl/⌘ + Enter로 생성할 수 있습니다."
-                disabled={isCreatingReview}
-              />
-            </div>
-
-            <button className="btn btn-primary" type="button" disabled={!canCreateReview} onClick={handleCreateReview}>
-              {isCreatingReview ? (
-                <>
-                  <div className="loading-spinner" style={{ width: '14px', height: '14px', borderWidth: '2px' }} />
-                  리뷰 생성 중...
-                </>
-              ) : (
-                '체스 리뷰 생성'
-              )}
-            </button>
-          </section>
-
-          <section className="section-card chess-review-create-card">
-            <div className="section-header">
-              <div>
-                <h2 className="section-title">체스 리뷰 생성</h2>
-                <p className="chess-helper-text">AI 응답은 전용 체스 리뷰 게시판에만 저장되며, 일반 게시판에는 자동 등록되지 않습니다.</p>
-              </div>
-            </div>
-
-            {!result.analysisId && (
-              <div className="form-error">⚠️ 분석 응답에 analysisId가 없어 리뷰를 생성할 수 없습니다. 백엔드 초안 저장 응답을 확인해 주세요.</div>
-            )}
-
-            {createdReview && (
-              <div className="chess-review-created-banner">
-                <div>
-                  <strong>체스 리뷰 생성 완료</strong>
-                  <p>#{createdReview.id} {createdReview.title}</p>
-                </div>
-                <button className="btn btn-secondary" type="button" onClick={() => onReviewCreated(createdReview)}>
-                  리뷰 열기
-                </button>
-              </div>
-            )}
-
-            <div className="form-group">
-              <label className="form-label" htmlFor="ai-response">외부 AI 응답</label>
-              <textarea
-                id="ai-response"
-                className="form-input form-textarea chess-ai-response-textarea"
-                value={aiResponse}
-                onChange={(event) => setAiResponse(event.target.value)}
-                onKeyDown={handleReviewCreateKeyDown}
-                placeholder="GPT/Gemini 등 외부 AI가 반환한 한국어 리뷰를 붙여넣으세요. Ctrl/⌘ + Enter로 생성할 수 있습니다."
-                disabled={isCreatingReview}
-              />
-            </div>
-
-            <button className="btn btn-primary" type="button" disabled={!canCreateReview} onClick={handleCreateReview}>
-              {isCreatingReview ? (
-                <>
-                  <div className="loading-spinner" style={{ width: '14px', height: '14px', borderWidth: '2px' }} />
-                  리뷰 생성 중...
-                </>
-              ) : (
-                '체스 리뷰 생성'
-              )}
-            </button>
-          </section>
         </>
       )}
     </div>

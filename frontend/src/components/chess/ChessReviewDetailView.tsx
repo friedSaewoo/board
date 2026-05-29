@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Chess } from 'chess.js';
 import { normalizeChessReviewDetail, RawChessReviewDetail } from '../../api/chessReviews';
-import { ChessMoveAnalysis, ChessReviewDetail, FeedbackMatch, Toast } from '../../types';
+import { ChessMoveAnalysis, ChessReviewDetail, MoveClassification, Toast } from '../../types';
 
 interface ChessReviewDetailViewProps {
   reviewId: number;
@@ -11,14 +11,72 @@ interface ChessReviewDetailViewProps {
 }
 
 type BoardPiece = { type: string; color: string } | null;
+type BoardArrow = {
+  kind: 'best';
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+};
 
 const pieceMap: Record<string, string> = {
-  wp: '♙', wn: '♘', wb: '♗', wr: '♖', wq: '♕', wk: '♔',
+  wp: '♟', wn: '♞', wb: '♝', wr: '♜', wq: '♛', wk: '♚',
   bp: '♟', bn: '♞', bb: '♝', br: '♜', bq: '♛', bk: '♚',
 };
 
-const sideLabel = (side?: string | null) => (side === 'WHITE' ? '백' : side === 'BLACK' ? '흑' : '-');
-const isCritical = (move?: ChessMoveAnalysis) => move?.classification === 'MISTAKE' || move?.classification === 'BLUNDER';
+const classificationLabel = (classification?: string | null) => {
+  const labels: Record<string, string> = {
+    EXCELLENT: '탁월',
+    BEST: '베스트',
+    GOOD: '좋음',
+    INACCURACY: '부정확',
+    MISTAKE: '실수',
+    BLUNDER: '블런더',
+  };
+  return classification ? labels[classification] || classification : '-';
+};
+
+const classificationTone = (classification?: MoveClassification | null) => {
+  switch (classification) {
+    case 'EXCELLENT':
+    case 'BEST':
+      return 'strong';
+    case 'GOOD':
+      return 'good';
+    case 'INACCURACY':
+      return 'warning';
+    case 'MISTAKE':
+    case 'BLUNDER':
+      return 'danger';
+    default:
+      return 'neutral';
+  }
+};
+
+const isCritical = (move?: ChessMoveAnalysis) => classificationTone(move?.classification) === 'danger';
+
+const formatMoveTitle = (move?: ChessMoveAnalysis) => {
+  if (!move) return '시작 포지션';
+  return `${move.moveNumber}${move.side === 'BLACK' ? '...' : '.'} ${move.san || move.uci || '-'}`;
+};
+
+const formatEval = (cp?: number | null, mate?: number | null) => {
+  if (typeof mate === 'number') return `M${mate}`;
+  if (typeof cp === 'number') return `${cp > 0 ? '+' : ''}${(cp / 100).toFixed(2)}`;
+  return '-';
+};
+
+const formatLoss = (loss?: number | null) => {
+  if (typeof loss !== 'number') return '-';
+  return `${loss}cp`;
+};
+
+const phaseLabel = (move?: ChessMoveAnalysis) => {
+  if (!move) return '시작';
+  if (move.moveNumber <= 8) return '오프닝';
+  if (move.moveNumber <= 30) return '미들게임';
+  return '엔드게임';
+};
 
 const squareName = (row: number, col: number) => `${String.fromCharCode(97 + col)}${8 - row}`;
 
@@ -39,12 +97,50 @@ const buildPosition = (moves: ChessMoveAnalysis[], ply: number) => {
   return chess.board() as BoardPiece[][];
 };
 
+const boardPointForSquare = (square: string | undefined, rows: number[], cols: number[]) => {
+  if (!square || square.length < 2) return null;
+  const file = square.charCodeAt(0) - 97;
+  const rank = Number(square[1]);
+  const row = 8 - rank;
+  const col = file;
+  const rowIndex = rows.indexOf(row);
+  const colIndex = cols.indexOf(col);
+  if (rowIndex < 0 || colIndex < 0) return null;
+  return {
+    x: ((colIndex + 0.5) / 8) * 100,
+    y: ((rowIndex + 0.5) / 8) * 100,
+  };
+};
+
+const buildBoardArrow = (
+  kind: BoardArrow['kind'],
+  from: string | undefined,
+  to: string | undefined,
+  rows: number[],
+  cols: number[],
+): BoardArrow | null => {
+  const start = boardPointForSquare(from, rows, cols);
+  const end = boardPointForSquare(to, rows, cols);
+  if (!start || !end) return null;
+
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const length = Math.hypot(dx, dy);
+  const shorten = Math.min(4.2, length * 0.28);
+
+  return {
+    kind,
+    x1: start.x,
+    y1: start.y,
+    x2: length ? end.x - (dx / length) * shorten : end.x,
+    y2: length ? end.y - (dy / length) * shorten : end.y,
+  };
+};
+
 export const ChessReviewDetailView: React.FC<ChessReviewDetailViewProps> = ({ reviewId, onBack, onToast, onSessionExpired }) => {
   const [review, setReview] = useState<ChessReviewDetail | null>(null);
-  const [editableMatches, setEditableMatches] = useState<FeedbackMatch[]>([]);
   const [currentPly, setCurrentPly] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSavingMatches, setIsSavingMatches] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
 
   useEffect(() => {
@@ -84,7 +180,6 @@ export const ChessReviewDetailView: React.FC<ChessReviewDetailViewProps> = ({ re
       if (!response.ok) throw new Error('체스 리뷰를 불러오지 못했습니다.');
       const data = normalizeChessReviewDetail(await response.json() as RawChessReviewDetail);
       setReview(data);
-      setEditableMatches(data.feedbackMatches || []);
       setCurrentPly(0);
     } catch (err) {
       console.error(err);
@@ -95,68 +190,70 @@ export const ChessReviewDetailView: React.FC<ChessReviewDetailViewProps> = ({ re
   };
 
   const board = useMemo(() => buildPosition(review?.moves || [], currentPly), [review?.moves, currentPly]);
+  const moveRows = useMemo(() => {
+    const rows = new Map<number, { moveNumber: number; white?: ChessMoveAnalysis; black?: ChessMoveAnalysis }>();
+    for (const move of review?.moves || []) {
+      const row = rows.get(move.moveNumber) || { moveNumber: move.moveNumber };
+      if (move.side === 'WHITE') {
+        row.white = move;
+      } else if (move.side === 'BLACK') {
+        row.black = move;
+      }
+      rows.set(move.moveNumber, row);
+    }
+    return Array.from(rows.values()).sort((a, b) => a.moveNumber - b.moveNumber);
+  }, [review?.moves]);
+
+  const feedbackMatches = review?.feedbackMatches || [];
+  const feedbackCountByPly = useMemo(() => {
+    const counts = new Map<number, number>();
+    for (const match of feedbackMatches) {
+      if (typeof match.matchedPly === 'number') {
+        counts.set(match.matchedPly, (counts.get(match.matchedPly) || 0) + 1);
+      }
+    }
+    return counts;
+  }, [feedbackMatches]);
+
   const currentMove = currentPly > 0 ? review?.moves.find((move) => move.ply === currentPly) : undefined;
-  const currentFeedback = editableMatches.filter((match) => match.matchedPly === currentPly);
-  const unmatchedFeedbackCount = editableMatches.filter((match) => match.matchedPly === null).length;
+  const currentFeedback = feedbackMatches.filter((match) => match.matchedPly === currentPly);
+  const unmatchedFeedback = feedbackMatches.filter((match) => match.matchedPly == null);
+  const importantMoves = useMemo(() => (review?.moves || []).filter((move) => {
+    const tone = classificationTone(move.classification);
+    return tone === 'danger' || tone === 'warning' || (feedbackCountByPly.get(move.ply) || 0) > 0;
+  }), [review?.moves, feedbackCountByPly]);
   const actualFrom = currentMove?.uci?.slice(0, 2);
   const actualTo = currentMove?.uci?.slice(2, 4);
-  const bestFrom = currentMove?.bestMove?.slice(0, 2);
-  const bestTo = currentMove?.bestMove?.slice(2, 4);
+  const firstMove = review?.moves[0];
+  const nextMove = review?.moves.find((move) => move.ply === currentPly + 1);
+  const engineBestMove = currentPly === 0 ? firstMove?.bestMove : nextMove?.bestMove;
+  const bestFrom = engineBestMove?.slice(0, 2);
+  const bestTo = engineBestMove?.slice(2, 4);
   const blackOrientation = Boolean(review?.playerColor === 'BLACK') !== isFlipped;
   const rows = blackOrientation ? [7, 6, 5, 4, 3, 2, 1, 0] : [0, 1, 2, 3, 4, 5, 6, 7];
   const cols = blackOrientation ? [7, 6, 5, 4, 3, 2, 1, 0] : [0, 1, 2, 3, 4, 5, 6, 7];
+  const boardArrows = [
+    buildBoardArrow('best', bestFrom, bestTo, rows, cols),
+  ].filter((arrow): arrow is BoardArrow => Boolean(arrow));
 
-  const saveMatches = async () => {
-    if (!review) return;
-    setIsSavingMatches(true);
-    try {
-      const response = await fetch(`/chess/reviews/${review.id}/matches`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          matches: editableMatches.map((match) => ({
-            segmentIndex: match.segmentIndex,
-            text: match.text,
-            matchedPly: match.matchedPly,
-            confidence: match.matchedPly ? match.confidence === 'NONE' ? 'HIGH' : match.confidence : 'NONE',
-            source: 'MANUAL',
-          })),
-        }),
-        credentials: 'include',
-      });
-      if (response.status === 401 || response.status === 403) {
-        onSessionExpired();
-        throw new Error('로그인 세션이 만료되었습니다.');
-      }
-      if (!response.ok) throw new Error('매칭 저장에 실패했습니다.');
-      const updated = normalizeChessReviewDetail(await response.json() as RawChessReviewDetail);
-      setReview(updated);
-      setEditableMatches(updated.feedbackMatches || []);
-      onToast('AI 피드백 매칭을 저장했습니다.', 'success');
-    } catch (err) {
-      console.error(err);
-      onToast(err instanceof Error ? err.message : '매칭 저장 중 오류가 발생했습니다.', 'error');
-    } finally {
-      setIsSavingMatches(false);
-    }
-  };
-
-  const updateMatchPly = (segmentIndex: number, matchedPly: number | null) => {
-    setEditableMatches((prev) => prev.map((match) => {
-      if (match.segmentIndex !== segmentIndex) return match;
-      const move = review?.moves.find((item) => item.ply === matchedPly);
-      return {
-        ...match,
-        matchedPly,
-        matchedMoveNumber: move?.moveNumber ?? null,
-        matchedSide: move?.side ?? null,
-        matchedSan: move?.san ?? null,
-        matchedUci: move?.uci ?? null,
-        confidence: matchedPly ? 'HIGH' : 'NONE',
-        source: 'MANUAL',
-      };
-    }));
-    if (matchedPly) setCurrentPly(matchedPly);
+  const renderMoveButton = (move?: ChessMoveAnalysis) => {
+    if (!move) return <span className="chess-move-cell empty">—</span>;
+    const feedbackCount = feedbackCountByPly.get(move.ply) || 0;
+    const tone = classificationTone(move.classification);
+    return (
+      <button
+        className={`chess-move-cell tone-${tone} ${currentPly === move.ply ? 'active' : ''}`}
+        type="button"
+        onClick={() => setCurrentPly(move.ply)}
+        title={`${formatMoveTitle(move)} (${move.uci || '-'}) · ${classificationLabel(move.classification)}`}
+      >
+        <span className="move-cell-main">{move.san || move.uci || '-'}</span>
+        <span className="move-cell-meta">
+          <span>{classificationLabel(move.classification)}</span>
+          {feedbackCount > 0 && <span>AI {feedbackCount}</span>}
+        </span>
+      </button>
+    );
   };
 
   if (isLoading) {
@@ -174,7 +271,7 @@ export const ChessReviewDetailView: React.FC<ChessReviewDetailViewProps> = ({ re
 
   return (
     <div className="chess-review-detail">
-      <section className="section-card">
+      <section className="section-card chess-review-hero">
         <div className="section-header">
           <div>
             <h2 className="section-title">{review.title}</h2>
@@ -189,7 +286,7 @@ export const ChessReviewDetailView: React.FC<ChessReviewDetailViewProps> = ({ re
         </div>
       </section>
 
-      <div className="chess-review-grid">
+      <div className="chess-learning-grid">
         <section className="section-card chess-board-card">
           <div className={`chess-board ${isCritical(currentMove) ? 'critical' : ''}`}>
             {rows.map((row) => cols.map((col) => {
@@ -207,24 +304,44 @@ export const ChessReviewDetailView: React.FC<ChessReviewDetailViewProps> = ({ re
               return (
                 <div className={classes} key={square} title={square}>
                   <span className="square-coordinate">{square}</span>
-                  <span className="piece">{piece ? pieceMap[`${piece.color}${piece.type}`] : ''}</span>
+                  <span className={`piece ${piece?.color === 'w' ? 'white-piece' : piece?.color === 'b' ? 'black-piece' : ''}`}>
+                    {piece ? pieceMap[`${piece.color}${piece.type}`] : ''}
+                  </span>
                 </div>
               );
             }))}
+            {boardArrows.length > 0 && (
+              <svg className="chess-arrow-layer" viewBox="0 0 100 100" aria-hidden="true">
+                <defs>
+                  <marker id="best-arrow-head" markerHeight="3.2" markerWidth="3.2" orient="auto" refX="2.7" refY="1.6">
+                    <path d="M0,0 L3.2,1.6 L0,3.2 Z" />
+                  </marker>
+                </defs>
+                {boardArrows.map((arrow) => (
+                  <line
+                    className={`chess-board-arrow ${arrow.kind}-arrow`}
+                    key={arrow.kind}
+                    markerEnd={`url(#${arrow.kind}-arrow-head)`}
+                    x1={arrow.x1}
+                    x2={arrow.x2}
+                    y1={arrow.y1}
+                    y2={arrow.y2}
+                  />
+                ))}
+              </svg>
+            )}
           </div>
-          <div className="chess-board-controls">
+          <div className="chess-board-controls compact">
             <button className="btn btn-secondary" onClick={() => setCurrentPly(0)} disabled={currentPly === 0}>처음</button>
             <button className="btn btn-secondary" onClick={() => setCurrentPly((prev) => Math.max(0, prev - 1))} disabled={currentPly === 0}>이전</button>
-            <span>Ply {currentPly} / {review.moves.length}</span>
+            <span className="chess-ply-counter">{currentPly} / {review.moves.length}</span>
             <button className="btn btn-secondary" onClick={() => setCurrentPly((prev) => Math.min(review.moves.length, prev + 1))} disabled={currentPly >= review.moves.length}>다음</button>
             <button className="btn btn-secondary" onClick={() => setCurrentPly(review.moves.length)} disabled={currentPly >= review.moves.length}>마지막</button>
           </div>
-          <div className="chess-current-move">
-            <strong>현재 수:</strong> {currentMove ? `${currentMove.moveNumber}${currentMove.side === 'BLACK' ? '...' : '.'} ${currentMove.san} (${currentMove.uci})` : '시작 포지션'}
-            {currentMove && <span className="chess-pill">{currentMove.classification || '-'}</span>}
-            <p>실제 수 화살표: {actualFrom && actualTo ? `${actualFrom} → ${actualTo}` : '-'}</p>
-            <p>Stockfish 추천/PV: {currentMove?.bestMove || '-'} {currentMove?.principalVariation?.length ? `· ${currentMove.principalVariation.join(' ')}` : ''}</p>
-            <p>추천 화살표: {bestFrom && bestTo ? `${bestFrom} → ${bestTo}` : '-'}</p>
+          <div className="chess-board-legend">
+            <span><i className="legend-dot actual" />방금 둔 수</span>
+            <span><i className="legend-dot best" />엔진 다음 최선수</span>
+            <span>←/→ 키로 이동</span>
           </div>
         </section>
 
@@ -232,110 +349,151 @@ export const ChessReviewDetailView: React.FC<ChessReviewDetailViewProps> = ({ re
           <div className="chess-panel-heading">
             <div>
               <h3 className="section-title">수 목록</h3>
-              <p className="chess-helper-text">←/→ 또는 &lt;/&gt; 키로 이동</p>
+              <p className="chess-helper-text">중요 수를 목차처럼 찍고, 아래 전체 수순에서 바로 이동합니다.</p>
             </div>
             <span className="chess-pill">{currentPly} / {review.moves.length}</span>
           </div>
-          <div className="chess-move-list">
-            <button className={`chess-move-chip ${currentPly === 0 ? 'active' : ''}`} type="button" onClick={() => setCurrentPly(0)}>시작</button>
-            {review.moves.map((move) => (
-              <button
-                key={move.ply}
-                className={`chess-move-chip ${currentPly === move.ply ? 'active' : ''} ${isCritical(move) ? 'critical' : ''}`}
-                type="button"
-                onClick={() => setCurrentPly(move.ply)}
-              >
-                {move.moveNumber}{move.side === 'BLACK' ? '...' : '.'} {move.san}
-              </button>
-            ))}
+
+          <div className="important-move-strip">
+            <strong>중요 수</strong>
+            <div className="important-move-list">
+              {importantMoves.length === 0 ? (
+                <span className="chess-helper-text">자동 표시할 중요 수가 없습니다.</span>
+              ) : importantMoves.map((move) => (
+                <button
+                  key={move.ply}
+                  className={`important-move-chip tone-${classificationTone(move.classification)} ${currentPly === move.ply ? 'active' : ''}`}
+                  type="button"
+                  onClick={() => setCurrentPly(move.ply)}
+                >
+                  <span>{formatMoveTitle(move)}</span>
+                  <small>{classificationLabel(move.classification)}</small>
+                </button>
+              ))}
+            </div>
           </div>
 
-          <div className="current-feedback-panel">
-            <div className="chess-panel-heading">
-              <div>
-                <h3 className="section-title">현재 수 AI 피드백</h3>
-                <p className="chess-helper-text">
-                  {currentMove
-                    ? `${currentMove.moveNumber}${currentMove.side === 'BLACK' ? '...' : '.'} ${currentMove.san}에 연결된 피드백`
-                    : '수를 선택하면 해당 수의 피드백만 표시됩니다.'}
-                </p>
-              </div>
-              <button className="btn btn-primary btn-compact" type="button" onClick={() => void saveMatches()} disabled={isSavingMatches}>
-                {isSavingMatches ? '저장 중...' : '매칭 저장'}
-              </button>
-            </div>
+          <button
+            className={`chess-move-start chess-move-start-fixed ${currentPly === 0 ? 'active' : ''}`}
+            type="button"
+            onClick={() => setCurrentPly(0)}
+          >
+            시작 포지션
+          </button>
 
-            {editableMatches.length === 0 ? (
+          <div className="chess-move-list">
+            {moveRows.map((row) => (
+              <div className="chess-move-row" key={row.moveNumber}>
+                <span className="chess-move-number">{row.moveNumber}.</span>
+                {renderMoveButton(row.white)}
+                {renderMoveButton(row.black)}
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="section-card chess-feedback-panel">
+          <div className="chess-panel-heading">
+            <div>
+              <h3 className="section-title">현재 수 해설</h3>
+              <p className="chess-helper-text">보드와 수 목록을 움직이면 이 영역만 바뀝니다.</p>
+            </div>
+            <span className={`chess-pill tone-${classificationTone(currentMove?.classification)}`}>
+              {currentMove ? classificationLabel(currentMove.classification) : '시작'}
+            </span>
+          </div>
+
+          <article className="current-move-study-card">
+            <div className="study-card-title">
+              <span>{formatMoveTitle(currentMove)}</span>
+              <small>{phaseLabel(currentMove)}</small>
+            </div>
+            {currentMove ? (
+              <>
+                <dl className="study-metrics-grid">
+                  <div>
+                    <dt>실전 수</dt>
+                    <dd>{currentMove.uci || '-'}</dd>
+                  </div>
+                  <div>
+                    <dt>대안 추천</dt>
+                    <dd>{currentMove.bestMove || '-'}</dd>
+                  </div>
+                  <div>
+                    <dt>다음 최선수</dt>
+                    <dd>{engineBestMove || '-'}</dd>
+                  </div>
+                  <div>
+                    <dt>손실</dt>
+                    <dd>{formatLoss(currentMove.centipawnLoss)}</dd>
+                  </div>
+                  <div>
+                    <dt>평가</dt>
+                    <dd>{formatEval(currentMove.scoreBeforeCp, currentMove.scoreBeforeMate)} → {formatEval(currentMove.scoreAfterCp, currentMove.scoreAfterMate)}</dd>
+                  </div>
+                </dl>
+                <div className="study-line-box">
+                  <strong>Stockfish PV</strong>
+                  <span>{currentMove.principalVariation?.length ? currentMove.principalVariation.join(' ') : '추천 라인이 없습니다.'}</span>
+                </div>
+              </>
+            ) : (
+              <p className="chess-helper-text">수 목록에서 궁금한 수를 누르거나 방향키로 이동하세요.</p>
+            )}
+          </article>
+
+          <div className="current-feedback-block">
+            <div className="feedback-block-title">
+              <strong>AI 피드백</strong>
+              <span className="chess-pill">{currentFeedback.length}개</span>
+            </div>
+            {feedbackMatches.length === 0 ? (
               <p className="chess-helper-text">AI 응답 세그먼트가 없습니다.</p>
             ) : currentFeedback.length === 0 ? (
               <div className="feedback-empty-state">
                 <strong>{currentMove ? '이 수에 연결된 피드백이 없습니다.' : '시작 포지션입니다.'}</strong>
-                <span>수 목록에서 다른 수를 선택하면 피드백이 즉시 바뀝니다.</span>
+                <span>중요 수 목차나 수 목록에서 다른 수를 선택하면 연결된 해설만 바로 표시됩니다.</span>
               </div>
             ) : (
-              <div className="current-feedback-list">
-                {currentFeedback.map((match) => (
-                  <article key={match.segmentIndex} className="feedback-card active compact">
-                    <div className="feedback-card-header">
-                      <strong>#{match.segmentIndex + 1}</strong>
-                      <span className="chess-pill">{match.confidence} · {match.source}</span>
-                    </div>
-                    <p>{match.text}</p>
-                    <label className="form-label" htmlFor={`current-match-${match.segmentIndex}`}>연결된 수</label>
-                    <select
-                      id={`current-match-${match.segmentIndex}`}
-                      className="form-input"
-                      value={match.matchedPly ?? ''}
-                      onChange={(event) => updateMatchPly(match.segmentIndex, event.target.value ? Number(event.target.value) : null)}
-                    >
-                      <option value="">미매칭</option>
-                      {review.moves.map((move) => (
-                        <option value={move.ply} key={move.ply}>
-                          {move.ply}. {move.moveNumber}{move.side === 'BLACK' ? '...' : '.'} {move.san} ({sideLabel(move.side)})
-                        </option>
-                      ))}
-                    </select>
-                  </article>
-                ))}
-              </div>
+              <article className="feedback-card active current-feedback-combined">
+                <div className="combined-feedback-body">
+                  {currentFeedback.map((match) => (
+                    <section key={match.segmentIndex} className="combined-feedback-item">
+                      <span className="combined-feedback-index">#{match.segmentIndex + 1}</span>
+                      <p>{match.text}</p>
+                    </section>
+                  ))}
+                </div>
+              </article>
             )}
-
-            <details className="feedback-match-manager">
-              <summary>전체 피드백 매칭 관리{unmatchedFeedbackCount > 0 ? ` · 미매칭 ${unmatchedFeedbackCount}개` : ''}</summary>
-              <div className="feedback-list compact-manager">
-                {editableMatches.map((match) => (
-                  <article
-                    key={match.segmentIndex}
-                    className={`feedback-card compact ${match.matchedPly === currentPly ? 'active' : ''}`}
-                    onClick={() => match.matchedPly && setCurrentPly(match.matchedPly)}
-                  >
-                    <div className="feedback-card-header">
-                      <strong>#{match.segmentIndex + 1}</strong>
-                      <span className="chess-pill">{match.confidence} · {match.source}</span>
-                    </div>
-                    <p>{match.text}</p>
-                    <label className="form-label" htmlFor={`match-${match.segmentIndex}`}>연결된 수</label>
-                    <select
-                      id={`match-${match.segmentIndex}`}
-                      className="form-input"
-                      value={match.matchedPly ?? ''}
-                      onClick={(event) => event.stopPropagation()}
-                      onChange={(event) => updateMatchPly(match.segmentIndex, event.target.value ? Number(event.target.value) : null)}
-                    >
-                      <option value="">미매칭</option>
-                      {review.moves.map((move) => (
-                        <option value={move.ply} key={move.ply}>
-                          {move.ply}. {move.moveNumber}{move.side === 'BLACK' ? '...' : '.'} {move.san} ({sideLabel(move.side)})
-                        </option>
-                      ))}
-                    </select>
-                  </article>
-                ))}
-              </div>
-            </details>
           </div>
         </section>
       </div>
+
+      {unmatchedFeedback.length > 0 && (
+        <section className="section-card unmatched-feedback-section">
+          <div className="section-header">
+            <div>
+              <h3 className="section-title">미매칭 AI 피드백</h3>
+              <p className="chess-helper-text">
+                특정 수와 자동 연결되지 않은 피드백입니다. 복잡한 직접 매칭 없이 참고용 카드로만 모아둡니다.
+              </p>
+            </div>
+            <span className="chess-pill">{unmatchedFeedback.length}개</span>
+          </div>
+          <div className="unmatched-feedback-grid">
+            {unmatchedFeedback.map((match) => (
+              <article key={match.segmentIndex} className="feedback-card compact unmatched">
+                <div className="feedback-card-header">
+                  <strong>#{match.segmentIndex + 1}</strong>
+                  <span className="chess-pill">{match.confidence} · {match.source}</span>
+                </div>
+                <p>{match.text}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 };

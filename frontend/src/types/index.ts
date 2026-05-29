@@ -37,7 +37,7 @@ export interface Member {
 
 export type PlayerColor = 'WHITE' | 'BLACK';
 
-export type MoveClassification = 'BEST' | 'GOOD' | 'INACCURACY' | 'MISTAKE' | 'BLUNDER' | string;
+export type MoveClassification = 'EXCELLENT' | 'BEST' | 'GOOD' | 'INACCURACY' | 'MISTAKE' | 'BLUNDER' | string;
 
 export interface ChessAnalysisRequest {
   pgn: string;
