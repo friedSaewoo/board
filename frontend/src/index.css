@@ -1217,34 +1217,27 @@ button, input, textarea, select {
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 92%;
+  height: 92%;
+  line-height: 1;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.34));
+}
+
+.piece-image {
+  display: block;
   width: 100%;
   height: 100%;
-  line-height: 1;
-  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.4));
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
 }
 
 .piece.white-piece {
-  color: #ffffff;
-  text-shadow:
-    -1px -1px 0 #111827,
-    1px -1px 0 #111827,
-    -1px 1px 0 #111827,
-    1px 1px 0 #111827,
-    0 2px 3px rgba(0, 0, 0, 0.65);
-  -webkit-text-fill-color: #ffffff;
-  -webkit-text-stroke: 0;
+  filter: drop-shadow(0 2px 3px rgba(15, 23, 42, 0.52));
 }
 
 .piece.black-piece {
-  color: #111827;
-  text-shadow:
-    -1px -1px 0 rgba(255, 255, 255, 0.7),
-    1px -1px 0 rgba(255, 255, 255, 0.7),
-    -1px 1px 0 rgba(255, 255, 255, 0.7),
-    1px 1px 0 rgba(255, 255, 255, 0.7),
-    0 2px 2px rgba(0, 0, 0, 0.35);
-  -webkit-text-fill-color: #111827;
-  -webkit-text-stroke: 0;
+  filter: drop-shadow(0 2px 2px rgba(248, 250, 252, 0.3)) drop-shadow(0 2px 3px rgba(0, 0, 0, 0.32));
 }
 
 .chess-arrow-layer {
@@ -1353,11 +1346,59 @@ button, input, textarea, select {
   font-size: 0.9rem;
 }
 
+.pattern-nav-strip {
+  max-height: 262px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.pattern-nav-title,
+.pattern-section-heading {
+  display: flex;
+  gap: 8px;
+}
+
+.pattern-nav-title {
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pattern-section-list {
+  display: grid;
+  gap: 10px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 3px;
+}
+
+.pattern-section {
+  display: grid;
+  gap: 6px;
+}
+
+.pattern-section-heading {
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.pattern-section-heading strong {
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.pattern-section-heading small {
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .important-move-list {
   display: grid;
   gap: 6px;
-  max-height: 150px;
-  overflow-y: auto;
+  max-height: none;
   padding-right: 3px;
 }
 
@@ -1618,7 +1659,8 @@ button, input, textarea, select {
   padding: 10px;
 }
 
-.study-line-box strong {
+.study-line-box strong,
+.study-pattern-box > strong {
   font-size: 0.78rem;
 }
 
@@ -1627,6 +1669,36 @@ button, input, textarea, select {
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
   font-size: 0.82rem;
   overflow-wrap: anywhere;
+}
+
+.study-pattern-box {
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+}
+
+.study-pattern-list {
+  display: grid;
+  gap: 7px;
+}
+
+.study-pattern-chip {
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  display: grid;
+  gap: 3px;
+  padding: 9px 10px;
+}
+
+.study-pattern-chip b {
+  font-size: 0.82rem;
+}
+
+.study-pattern-chip small {
+  color: var(--text-muted);
+  line-height: 1.35;
 }
 
 .current-feedback-block {

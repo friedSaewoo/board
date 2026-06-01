@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title">
+  <title id="title">Black Rook</title>
+  <g stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="64" cy="109" rx="38" ry="8" fill="#020617" opacity="0.18"/>
+
+    <path d="M35 25h16v12h9V25h8v12h9V25h16v30H35V25Z" fill="#3b4250" stroke="#0b1020" stroke-width="5"/>
+    <path d="M42 55h44l5 38H37l5-38Z" fill="#3b4250" stroke="#0b1020" stroke-width="5"/>
+    <path d="M31 93h66l9 15H22l9-15Z" fill="#3b4250" stroke="#0b1020" stroke-width="5"/>
+    <path d="M47 67h34M43 84h42" fill="none" stroke="#6b7280" stroke-width="4" opacity="0.72"/>
+  </g>
+</svg>
