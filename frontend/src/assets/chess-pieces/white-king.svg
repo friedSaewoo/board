@@ -1,11 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title">
   <title id="title">White King</title>
   <g stroke-linecap="round" stroke-linejoin="round">
-    <ellipse cx="64" cy="109" rx="38" ry="8" fill="#475569" opacity="0.18"/>
 
-    <path d="M64 16v25M53 28h22" fill="none" stroke="#101827" stroke-width="7"/>
-    <path d="M39 54c6-13 15-19 25-19s19 6 25 19l-10 37H49L39 54Z" fill="#fbfbf7" stroke="#101827" stroke-width="5"/>
-    <path d="M35 92h58l10 16H25l10-16Z" fill="#fbfbf7" stroke="#101827" stroke-width="5"/>
-    <path d="M49 63h30M45 83h38" fill="none" stroke="#d7dce5" stroke-width="4" opacity="0.72"/>
+    <ellipse cx="64" cy="110" rx="37" ry="7" fill="#475569" opacity="0.18"/>
+    <path d="M64 18v21M54 28h20" fill="none" stroke="#0b1020" stroke-width="7"/>
+    <path d="M62 39c8-1 14 6 12 14L64 79 54 53c-2-8 2-13 8-14Z" fill="#fbfbf7" stroke="#0b1020" stroke-width="5"/>
+    <path d="M58 70c-9-22-30-29-40-17-10 12 0 35 25 39h42c25-4 35-27 25-39-10-12-31-5-40 17" fill="#fbfbf7" stroke="#0b1020" stroke-width="5"/>
+    <path d="M38 85c13 6 39 6 52 0l6 16H32l6-16Z" fill="#fbfbf7" stroke="#0b1020" stroke-width="5"/>
+    <path d="M35 98c15 5 43 5 58 0" fill="none" stroke="#0b1020" stroke-width="4"/>
+    <path d="M64 45v38" fill="none" stroke="#0b1020" stroke-width="4"/>
+    <path d="M28 60c7-8 20-6 27 9M100 60c-7-8-20-6-27 9" fill="none" stroke="#ffffff" stroke-width="4" opacity="0.35"/>
   </g>
 </svg>

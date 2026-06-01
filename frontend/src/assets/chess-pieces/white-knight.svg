@@ -1,13 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title">
   <title id="title">White Knight</title>
   <g stroke-linecap="round" stroke-linejoin="round">
-    <ellipse cx="64" cy="109" rx="38" ry="8" fill="#475569" opacity="0.18"/>
 
-    <path d="M80 20c-14 3-27 11-37 22-7 8-11 17-12 27l14 6c-7 6-10 13-10 21h53c5-14 1-27-9-38l8-11c6-10 2-22-7-27Z" fill="#fbfbf7" stroke="#101827" stroke-width="5"/>
-    <path d="M43 96h48l10 12H29l14-12Z" fill="#fbfbf7" stroke="#101827" stroke-width="5"/>
-    <path d="M43 42 27 57l20 7" fill="#fbfbf7" stroke="#101827" stroke-width="5"/>
-    <path d="M58 45c6-5 13-8 22-9" fill="none" stroke="#d7dce5" stroke-width="4" opacity="0.8"/>
-    <path d="M62 56c5 5 11 7 18 7" fill="none" stroke="#d7dce5" stroke-width="4" opacity="0.65"/>
-    <circle cx="72" cy="36" r="3.2" fill="#101827"/>
+    <ellipse cx="66" cy="111" rx="39" ry="7" fill="#475569" opacity="0.18"/>
+    <path d="M67 16 75 31c19 4 32 24 36 48 2 10 1 20 1 29H55c0-18 8-31 22-43-8 4-16 11-24 22-3 4-8 6-13 5-7-2-11-8-10-16 1-5 4-9 8-12 5-13 13-25 23-33l-1-15 9 12 7-10Z" fill="#fbfbf7" stroke="#0b1020" stroke-width="5"/>
+    <path d="M76 65c-11 8-20 18-21 36" fill="none" stroke="#0b1020" stroke-width="4"/>
+    <path d="M42 67c-4 2-7 5-8 9" fill="none" stroke="#0b1020" stroke-width="4"/>
+    <circle cx="55" cy="48" r="3.5" fill="#0b1020"/>
+    <circle cx="37" cy="77" r="2.4" fill="#0b1020"/>
+    <path d="M84 39c10 8 16 23 18 40" fill="none" stroke="#ffffff" stroke-width="4" opacity="0.35"/>
   </g>
 </svg>
