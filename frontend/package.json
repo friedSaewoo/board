@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "node node_modules/typescript/lib/tsc.js && node node_modules/vite/dist/node/cli.js build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "check:chess-feedback": "node scripts/check-chess-feedback-matcher.mjs",
+    "check:chess-pieces": "node scripts/check-chess-piece-assets.mjs"
   },
   "dependencies": {
     "chess.js": "^1.4.0",
